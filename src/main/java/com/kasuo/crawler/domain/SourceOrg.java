@@ -10,7 +10,6 @@ public class SourceOrg
   protected String queryOrgName;
   protected Org org;
   protected String crawlEvent;
-  protected String queryUrl;
   
   public SourceOrg() {}
   
@@ -55,11 +54,4 @@ public class SourceOrg
     this.crawlEvent = crawlEvent;
   }
   
-  public String getQueryUrl() {
-    return queryUrl;
-  }
-  
-  public void setQueryUrl(String queryUrl) {
-    this.queryUrl = queryUrl;
-  }
 }

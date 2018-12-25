@@ -29,18 +29,6 @@ import com.teamdev.jxbrowser.chromium.dom.DOMElement;
 import com.teamdev.jxbrowser.chromium.dom.DOMNode;
 import com.teamdev.jxbrowser.chromium.events.FailLoadingEvent;
 import com.teamdev.jxbrowser.chromium.events.FinishLoadingEvent;
-
-import java.io.IOException;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import javax.swing.JMenuItem;
-
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -55,6 +43,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import javax.swing.*;
+import java.io.IOException;
+import java.lang.reflect.Type;
+import java.util.*;
+import java.util.stream.Collectors;
+
 /**
  * @author dzt
  */
@@ -63,20 +57,6 @@ public abstract class AbstractCrawlerService {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractCrawlerService.class);
 
-    public static final int SLEEP_SHORT = 200;
-    public static final int SLEEP_MID = 500;
-    public static final int SLEEP_LONG = 1000;
-    public static final long RETRY_REQUEST_SERVER_INTERVAL = 60000L;
-    public static final int MAX_CONTINUOUS_SAVE_FAIL_NUMS = 10;
-    public static final int MAX_CONTINUOUS_FAIL_NUMS = 50;
-    public static final int MAX_CONTINUOUS_DOM_ERROR_NUMS = 20;
-    public static final int MAX_TIMEOUT_NUMS = 10;
-    public static final int TIMEOUT_INCREMENT_IN_SECOND = 5;
-    public static final int MAX_BASE_TIMEOUT_IN_SECOND = 60;
-    public static final int MAX_DETAIL_TIMEOUT_IN_SECOND = 90;
-    public static final int VERIFY_CODE_CHECK_THREAD_INTERVAL = 60000;
-    public static final int VERIFY_CODE_CHECK_THREAD_TIMEOUT = 600000;
-    private static final String SIGNEDCODE = "df3gsfd6x29zm2g";
     private static String serverSign = "U3xer0Xdz9Z2Ea";
     private static int crawlStartMinute = 40;
     private static int crawlEndMinute = 12;
@@ -91,17 +71,12 @@ public abstract class AbstractCrawlerService {
     protected String crawlerPwd = "";
     protected int crawlerIniWait = 2;
     protected int crawlerIncWait = 3;
-    protected int crawlerBasicTimeoutCount = 0;
-    protected int crawlerDetailTimeoutCount = 0;
     protected int crawlerBasicTimeout = 30;
     protected int crawlerDetailTimeout = 30;
     protected int crawlerMaxRecords = 100;
     protected int crawlerStartHour = 7;
     protected int crawlerEndHour = 23;
     protected String serverIp = null;
-
-    protected String loginUrl = "";
-    protected String homeUrl = "";
 
     protected boolean fetchDataStatus = false;
     protected boolean fetchDataTestStatus = false;
@@ -731,12 +706,11 @@ public abstract class AbstractCrawlerService {
         return false;
     }
 
-
     protected boolean checkVerifyData(Org org, String queryName) {
         try {
             logger.debug("checkVerifyData start...");
 
-            boolean found = false;
+            boolean found;
             String newValue = "";
             if (queryName.equals("北京中晶环境科技股份有限公司")) {
 

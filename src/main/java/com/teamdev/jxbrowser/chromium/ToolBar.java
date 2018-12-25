@@ -11,7 +11,6 @@ import com.teamdev.jxbrowser.chromium.events.StartLoadingEvent;
 import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
 import java.awt.Component;
-import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -51,12 +50,6 @@ public class ToolBar
         extends JPanel {
     private static final Logger logger = LoggerFactory.getLogger(AbstractCrawlerService.class);
 
-    private static final String RUN_JAVASCRIPT = "Run JavaScript...";
-
-    private static final String CLOSE_JAVASCRIPT = "Close JavaScript Console";
-    private static final String DEFAULT_URL = "about:blank";
-    private JButton backwardButton;
-    private JButton forwardButton;
     private JButton refreshButton;
     private JButton stopButton;
     private JMenuItem consoleMenuItem;
@@ -76,14 +69,12 @@ public class ToolBar
         consoleMenuItem.setText("Run JavaScript...");
     }
 
-
     private JPanel createActionsPane() {
         try {
             refreshButton = createRefreshButton(browserView.getBrowser());
             stopButton = createStopButton(browserView.getBrowser());
 
             JPanel actionsPanel = new JPanel();
-
 
             actionsPanel.add(refreshButton);
             actionsPanel.add(stopButton);
@@ -169,32 +160,6 @@ public class ToolBar
         return null;
     }
 
-    private static JButton createBackwardButton(Browser browser) {
-        return createButton("Back", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    browser.goBack();
-                } catch (Throwable ee) {
-                    logger.error("", ee);
-                }
-            }
-        });
-    }
-
-    private static JButton createForwardButton(Browser browser) {
-        return createButton("Forward", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    browser.goForward();
-                } catch (Throwable ee) {
-                    logger.error("", ee);
-                }
-            }
-        });
-    }
-
     private static JButton createRefreshButton(Browser browser) {
         return createButton("Refresh", new AbstractAction() {
             @Override
@@ -257,8 +222,6 @@ public class ToolBar
         popupMenu.add(createConsoleMenuItem());
         popupMenu.add(createJavaScriptDialogsMenuItem());
         popupMenu.add(createExecuteCommandSubMenu());
-        popupMenu.addSeparator();
-        popupMenu.add(createAboutMenuItem());
 
         final ActionButton button = new ActionButton("Preferences", null);
         button.setIcon(Resources.getIcon("META-INF/gear.png"));
@@ -432,12 +395,6 @@ public class ToolBar
         return menuItem;
     }
 
-    private Component createMoreMenuItem() {
-        JMenuItem menuItem = new JMenuItem("More Features...");
-        menuItem.addActionListener(e -> browserView.getBrowser().loadURL("http://www.etoip.com"));
-        return menuItem;
-    }
-
     private Component createSaveWebPageMenuItem() {
         JMenuItem menuItem = new JMenuItem("Save Web Page...");
         menuItem.addActionListener(e -> {
@@ -454,36 +411,6 @@ public class ToolBar
                 ToolBar.logger.error("", ee);
             }
         });
-        return menuItem;
-    }
-
-    private Component createActualSizeMenuItem() {
-        JMenuItem menuItem = new JMenuItem("Actual Size");
-        menuItem.addActionListener(e -> browserView.getBrowser().zoomReset());
-        return menuItem;
-    }
-
-    private Component createZoomOutMenuItem() {
-        JMenuItem menuItem = new JMenuItem("Zoom Out");
-        menuItem.addActionListener(e -> browserView.getBrowser().zoomOut());
-        return menuItem;
-    }
-
-    private Component createZoomInMenuItem() {
-        JMenuItem menuItem = new JMenuItem("Zoom In");
-        menuItem.addActionListener(e -> browserView.getBrowser().zoomIn());
-        return menuItem;
-    }
-
-    private Component createHTML5VideoMenuItem() {
-        JMenuItem menuItem = new JMenuItem("HTML5 Video");
-        menuItem.addActionListener(e -> browserView.getBrowser().loadURL("http://www.w3.org/2010/05/video/mediaevents.html"));
-        return menuItem;
-    }
-
-    private Component createGoogleMapsMenuItem() {
-        JMenuItem menuItem = new JMenuItem("Google Maps");
-        menuItem.addActionListener(e -> browserView.getBrowser().loadURL("https://maps.google.com/"));
         return menuItem;
     }
 
@@ -595,40 +522,6 @@ public class ToolBar
             }
         });
         return consoleMenuItem;
-    }
-
-    private JMenuItem createUploadFileMenuItem() {
-        JMenuItem menuItem = new JMenuItem("Upload File");
-        menuItem.addActionListener(e -> browserView.getBrowser().loadURL("http://www.cs.tut.fi/~jkorpela/forms/file.html#example"));
-        return menuItem;
-    }
-
-    private JMenuItem createPopupsMenuItem() {
-        JMenuItem menuItem = new JMenuItem("Popup Windows");
-        menuItem.addActionListener(e -> browserView.getBrowser().loadURL("http://www.popuptest.com"));
-        return menuItem;
-    }
-
-    private JMenuItem createPDFViewerMenuItem() {
-        JMenuItem menuItem = new JMenuItem("PDF Viewer");
-        menuItem.addActionListener(e -> browserView.getBrowser().loadURL("http://www.orimi.com/pdf-test.pdf"));
-        return menuItem;
-    }
-
-    private JMenuItem createFlashMenuItem() {
-        JMenuItem menuItem = new JMenuItem("Adobe Flash");
-        menuItem.addActionListener(e -> browserView.getBrowser().loadURL("http://helpx.adobe.com/flash-player.html"));
-        return menuItem;
-    }
-
-    private JMenuItem createAboutMenuItem() {
-        JMenuItem menuItem = new JMenuItem("About ETOIP Crawler");
-        menuItem.addActionListener(e -> {
-            Frame parentFrame = (Frame) SwingUtilities.getWindowAncestor(ToolBar.this);
-            AboutDialog aboutDialog = new AboutDialog(parentFrame);
-            aboutDialog.setVisible(true);
-        });
-        return menuItem;
     }
 
     private boolean isFocusRequired() {

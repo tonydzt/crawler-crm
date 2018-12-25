@@ -698,7 +698,6 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                 }
             }
 
-
             DOMElement baseInfo = doc.findElement(By.id("_container_baseInfo"));
             if (baseInfo == null) {
                 logger.warn("NOT FOUND by _container_baseInfo");
@@ -766,7 +765,6 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
             throw new DOMParseException();
         }
     }
-
 
     @Override
     protected String getBasicUrl(String queryOrgName, long queryTime) {

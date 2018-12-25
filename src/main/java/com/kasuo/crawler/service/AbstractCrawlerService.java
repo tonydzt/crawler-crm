@@ -66,7 +66,6 @@ public abstract class AbstractCrawlerService {
     public static JMenuItem menuItem2 = null;
 
     protected String crawlerType = "2";
-    protected String crawlerName = "天眼查";
     protected String crawlerUser = "";
     protected String crawlerPwd = "";
     protected int crawlerIniWait = 2;
@@ -151,20 +150,6 @@ public abstract class AbstractCrawlerService {
         if (crawlerStartVerify == null) {
             crawlerStartVerify = "1";
         }
-
-        if (crawlerType.equals("1")) {
-            crawlerName = "启信宝";
-        } else if (crawlerType.equals("2")) {
-            crawlerName = "天眼查";
-        } else if (crawlerType.equals("3")) {
-            crawlerName = "企查查";
-        } else if (crawlerType.equals("4")) {
-            crawlerName = "企查猫";
-        }
-    }
-
-    public String getQueryUrl() {
-        return queryUrl;
     }
 
     public abstract String getLoginUrl();
@@ -188,15 +173,6 @@ public abstract class AbstractCrawlerService {
     public void setFetchDataTestStatus() {
         fetchDataTestStatus = (!fetchDataTestStatus);
         fetchDataStatus = fetchDataTestStatus;
-    }
-
-    public void setFetchDataTestStatus(boolean status) {
-        fetchDataTestStatus = status;
-        fetchDataStatus = fetchDataTestStatus;
-    }
-
-    public boolean getFetchDataTestStatus() {
-        return fetchDataTestStatus;
     }
 
     public int getCrawlRebootNums() {
@@ -251,14 +227,12 @@ public abstract class AbstractCrawlerService {
     public void startFetch(final Browser browser) {
         Thread fetchThread = new Thread(() -> {
             todo = "";
-            List<SourceInput> orgList = null;
+            List<SourceInput> orgList;
             boolean needReboot = false;
 
 
             while (fetchDataStatus) {
                 try {
-                    orgList = null;
-
 
                     if (isDecline()) {
                         Thread.sleep(60000L);
@@ -398,8 +372,7 @@ public abstract class AbstractCrawlerService {
     }
 
 
-    protected List<SourceInput> getVerifyData(Browser browser)
-            throws Exception {
+    protected List<SourceInput> getVerifyData(Browser browser) {
         logger.debug("getVerifyData ...");
         List<SourceInput> orgList = null;
         if (verifyDataDate == null) {
@@ -432,9 +405,9 @@ public abstract class AbstractCrawlerService {
 
 
             boolean isTimeout = false;
-            String orgName = null;
-            String inputId = null;
-            long queryTime = 0L;
+            String orgName;
+            String inputId;
+            long queryTime;
 
             for (SourceInput input : inputList) {
                 if (!fetchDataStatus) {
@@ -1340,16 +1313,6 @@ public abstract class AbstractCrawlerService {
         }
     }
 
-
-    public String httpPostOnce(List<NameValuePair> valuePairs) {
-        try {
-            return httpPost(valuePairs);
-        } catch (IOException e) {
-        }
-        return null;
-    }
-
-
     public boolean checkAllVerifyData(List<SourceInput> inputList) {
         boolean foundPass = false;
         for (SourceInput input : inputList) {
@@ -1758,7 +1721,6 @@ public abstract class AbstractCrawlerService {
                     return;
                 }
 
-
                 String url;
                 try {
                     url = fetchBasicInfo(browser, org);
@@ -1889,20 +1851,6 @@ public abstract class AbstractCrawlerService {
         }
         return new OrgType("1");
     }
-
-    protected static String getOrgStatus(String s) {
-        try {
-            s = s.trim();
-            int i = s.indexOf("（");
-            if (i != -1) {
-            }
-            return s.substring(0, i).trim();
-        } catch (Throwable e) {
-            logger.error("getOrgStatus error! " + s, e);
-        }
-        return null;
-    }
-
 
     public void sendNotice(String eventId) {
         logger.info("sendNotice: eventId=" + eventId);

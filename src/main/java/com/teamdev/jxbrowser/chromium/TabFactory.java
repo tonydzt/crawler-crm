@@ -2,7 +2,6 @@ package com.teamdev.jxbrowser.chromium;
 
 import com.kasuo.crawler.service.AbstractCrawlerService;
 import com.kasuo.crawler.service.CrawlerOrgTYCService;
-import com.kasuo.crawler.util.CrmProperties;
 import com.teamdev.jxbrowser.chromium.events.DisposeListener;
 import com.teamdev.jxbrowser.chromium.events.FailLoadingEvent;
 import com.teamdev.jxbrowser.chromium.events.FinishLoadingEvent;
@@ -14,29 +13,22 @@ import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 import com.teamdev.jxbrowser.chromium.swing.DefaultDialogHandler;
 import com.teamdev.jxbrowser.chromium.swing.DefaultDownloadHandler;
 import com.teamdev.jxbrowser.chromium.swing.DefaultPopupHandler;
-
 import java.util.Map;
 import java.util.Map.Entry;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 public final class TabFactory {
     private static final Logger logger = LoggerFactory.getLogger(TabFactory.class);
 
-    public static final String browserTypeHome = "Home";
-    public static final String browserTypeSearch = "Search";
     public static TabbedPane tabbedPane = null;
     public static AbstractCrawlerService crawlerOrgService = null;
     public static BrowserContext browserContext = null;
     public static Browser browserHome = null;
     public static Browser browserSearch = null;
 
-
     public TabFactory() {
     }
-
 
     public static Tab createHomeTab() {
         logger.info("ChromiumVariables...");
@@ -57,7 +49,6 @@ public final class TabFactory {
         for (String s : BrowserPreferences.getChromiumSwitches()) {
             logger.info(s);
         }
-
 
         browserHome = new Browser(browserContext);
         logger.info("createTab: Home renderProcess pid=" + browserHome.getRenderProcessInfo().getPID());
@@ -87,10 +78,6 @@ public final class TabFactory {
         logger.debug("jxBrowser dataDir: " + browserHome.getContext().getDataDir());
         logger.debug("jxBrowser storageType: " + (browserHome.getContext().getStorageType().compareTo(StorageType.DISK) == 0 ? "DISK" : "MEMORY"));
 
-        //TODO 替换！！
-        String crawlerType = CrmProperties.getProperty("crawlerType");
-        logger.debug("crawlerType=" + crawlerType);
-
         BrowserView browserView = new BrowserView(browserHome);
         TabContent tabContent = new TabContent(browserView, "Home");
         TabCaption tabCaption = new TabCaption();
@@ -100,16 +87,7 @@ public final class TabFactory {
         browserHome.setDialogHandler(new DefaultDialogHandler(browserView));
         browserHome.setPopupHandler(new DefaultPopupHandler());
 
-        if (crawlerType.equals("1")) {
-            logger.info("create qxbService");
-//            crawlerOrgService = CrawlerOrgQXBService.getInstance();
-        } else if (crawlerType.equals("2")) {
-            logger.info("create tycService");
-            crawlerOrgService = CrawlerOrgTYCService.getInstance();
-        } else {
-            logger.error("NO create service!");
-        }
-
+        crawlerOrgService = CrawlerOrgTYCService.getInstance();
 
         browserHome.addRenderListener(new RenderAdapter() {
             @Override
@@ -160,14 +138,11 @@ public final class TabFactory {
                 TabFactory.finishLoadingFrameHandler(event, "Home");
 
             }
-
-
         });
         String url = crawlerOrgService.getLoginUrl();
         browserHome.loadURL(url);
         return new Tab(tabCaption, tabContent);
     }
-
 
     public static synchronized void createSearchTab() {
         browserSearch = new Browser(browserContext);
@@ -225,14 +200,11 @@ public final class TabFactory {
                 TabFactory.finishLoadingFrameHandler(event, "Search");
 
             }
-
-
         });
         Tab tab = new Tab(tabCaption, tabContent);
         tabbedPane.addTab(tab);
         tabbedPane.selectTab("Home");
     }
-
 
     private static void startLoadingFrameHandler(StartLoadingEvent event, String browserType) {
         if (event.isMainFrame()) {
@@ -244,7 +216,6 @@ public final class TabFactory {
         }
     }
 
-
     private static void failLoadingFrameHandler(FailLoadingEvent event, String browserType) {
         Browser browser = event.getBrowser();
         crawlerOrgService.recordEndLoadingTimes(browser);
@@ -253,7 +224,6 @@ public final class TabFactory {
         logger.debug("************************************************************************************");
         crawlerOrgService.handleFailLoadingFrame(event);
     }
-
 
     private static void finishLoadingFrameHandler(FinishLoadingEvent event, String browserType) {
         try {
@@ -276,7 +246,6 @@ public final class TabFactory {
             logger.error("handle onFinishLoadingFrame error ", e);
         }
     }
-
 
     private static void rebootFetchData(Browser browser) {
         try {

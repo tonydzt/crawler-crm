@@ -1,7 +1,6 @@
 package com.kasuo.crawler.util;
 
 import java.io.BufferedInputStream;
-import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Properties;
@@ -28,16 +27,6 @@ public class CrmProperties {
         return false;
     }
 
-
-    public static boolean isProduction() {
-        String production = getProperty("production");
-        if ((production != null) && (production.equals("true"))) {
-            return true;
-        }
-        return false;
-    }
-
-
     public static String getProperty(String name) {
         String s = prop.getProperty(name);
         if (s != null) {
@@ -45,18 +34,6 @@ public class CrmProperties {
 
         } else {
             s = "";
-        }
-
-        return s;
-    }
-
-    private static String pathProperty(String s) {
-        if (!s.endsWith("/")) {
-            s = s + "/";
-        }
-        File file = new File(s);
-        if (!file.exists()) {
-            file.mkdirs();
         }
 
         return s;

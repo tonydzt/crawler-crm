@@ -1,8 +1,6 @@
 package com.teamdev.jxbrowser.chromium;
 
-import com.kasuo.crawler.config.CrawlerConfig;
 import com.teamdev.jxbrowser.chromium.resources.Resources;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.awt.event.WindowAdapter;
@@ -21,9 +19,6 @@ import javax.swing.UIManager;
 
 @Service
 public class JxBrowserDemo {
-
-    @Autowired
-    private CrawlerConfig crawlerConfig;
 
     private static AtomicInteger browserNum = new AtomicInteger(0);
 
@@ -119,12 +114,6 @@ public class JxBrowserDemo {
         frame.setIconImage(Resources.getIcon("META-INF/etoip32x32.png").getImage());
         frame.setVisible(true);
         frame.setExtendedState(6);
-    }
-
-    private static void insertNewTabButton(TabbedPane tabbedPane) {
-        TabButton button = new TabButton(Resources.getIcon("META-INF/new-tab.png"), "New tab");
-        button.addActionListener(e -> JxBrowserDemo.insertTab(tabbedPane, TabFactory.createHomeTab()));
-        tabbedPane.addTabButton(button);
     }
 
     private static void insertTab(TabbedPane tabbedPane, Tab tab) {

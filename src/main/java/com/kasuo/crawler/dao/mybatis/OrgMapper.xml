@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kasuo.crawler.dao.mybatis.OrgDao">
+
+    <resultMap id="resultMap" type="com.kasuo.crawler.domain.Org">
+        <id property="id" column="id" jdbcType="BIGINT"/>
+        <result column="name" property="name" javaType="String" jdbcType="VARCHAR"/>
+        <result column="legal_person" property="legalPerson" javaType="String" jdbcType="VARCHAR"/>
+        <result column="registered_capital" property="registeredCapital" javaType="String" jdbcType="VARCHAR"/>
+        <result column="has_contact" property="hasContact" javaType="boolean" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <select id="findByNameForUpdate" resultMap="resultMap">
+        SELECT
+        id, name, legal_person, registered_capital, has_contact
+        FROM
+        org
+        <where>
+            name=#{orgName}
+        </where>
+        for UPDATE
+    </select>
+
+    <insert id="insert" parameterType="com.kasuo.crawler.domain.Org" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO
+        org (name, legal_person, registered_capital, has_contact)
+        VALUES
+        (#{name}, #{legalPerson}, #{registeredCapital}, #{hasContact})
+    </insert>
+
+    <update id="updateHasContact">
+        UPDATE org set has_contact = 1
+        <where>
+            id=#{id}
+        </where>
+    </update>
+
+    <update id="updateEmployeeId">
+        UPDATE org set employee_id = #{employeeId}
+        <where>
+            id in
+            <foreach item="item" index="index" collection="orgIds"
+                     open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </where>
+    </update>
+</mapper>

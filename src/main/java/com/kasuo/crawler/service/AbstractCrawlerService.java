@@ -595,6 +595,8 @@ public abstract class AbstractCrawlerService {
                                     }
                                 }
                                 SpringBeanUtil.getBean(OrgService.class).save(org, Long.parseLong(inputId));
+                                crawlCount(org);
+
 //                                saveOrgInfo(browser, org, inputId, sourceOrg.getCrawlEvent());
                             } else {
                                 input.setValidFlag(new ValidFlag("1"));

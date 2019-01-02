@@ -1,7 +1,5 @@
 package com.kasuo.crawler.filter;
 
-import com.sun.tools.javac.util.Filter;
-
 /**
  * @author douzhitong
  * @date 2018/11/20

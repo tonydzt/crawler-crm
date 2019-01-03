@@ -270,8 +270,8 @@ public abstract class AbstractCrawlerService {
 //                            }
 
                             if ((orgList == null) || (orgList.size() == 0)) {
+                                logger.debug("No data need to craw, sleep..");
                                 Thread.sleep(60000L);
-
                             } else {
                                 int entryCount = browser.getNavigationEntryCount();
 
@@ -824,6 +824,9 @@ public abstract class AbstractCrawlerService {
     private List<SourceInput> distributeRawData() {
 
         List<Trademark> trademarkList = SpringBeanUtil.getBean(TrademarkDao.class).findUnCraw();
+        if (trademarkList == null) {
+            return null;
+        }
         return trademarkList.stream().map(trademark -> {
             SourceInput sourceInput = new SourceInput();
             sourceInput.setId(trademark.getId().toString());

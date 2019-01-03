@@ -9,6 +9,8 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.CollectionUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,6 +57,9 @@ public class TrademarkDao {
     public List<Trademark> findUnCraw() {
         String sql = "select * from trademark where craw_status = 0 limit 5";
         List<Trademark> trademarkList = jdbcTemplate.query(sql, getRowMapper());
+        if (CollectionUtils.isEmpty(trademarkList)) {
+            return null;
+        }
         String trademarkIds = trademarkList.stream()
                     .map(trademark -> trademark.getId().toString())
                     .reduce((a, b) -> a + "," + b).get();

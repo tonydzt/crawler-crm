@@ -237,6 +237,7 @@ public final class TabFactory {
                 synchronized (crawlerOrgService) {
                     crawlerOrgService.showDebugInfo();
                     AbstractCrawlerService.sleep(200L);
+                    //抓取公司信息（检索页或明细页）
                     crawlerOrgService.handleOrgInfo(browser, event);
                 }
 

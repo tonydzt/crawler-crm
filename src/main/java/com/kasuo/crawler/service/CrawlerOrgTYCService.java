@@ -199,6 +199,9 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
     }
 
 
+    /**
+     * 检查是否搜索到结果
+     */
     @Override
     protected boolean handleQueryNums(Browser browser, boolean retry)
             throws DOMParseException, NotFoundException {
@@ -220,23 +223,22 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
             crawlDomErrorNums += 1;
             if (!retry) {
                 logger.error("NOT FOUND #search,天眼查出现未知页面失败，认为解析DOM出错，继续下一条，请人工检查日志! " + queryOrgName);
-
                 throw new DOMParseException();
             }
 
             logger.warn("NOT FOUND #search,天眼查出现未知页面失败，本页面等待N秒后再次尝试解析'找到N条相关结果' " + queryOrgName);
-
 
             logger.error("******************************************* ERROR html *******************************************");
             logger.error(doc.getDocumentElement().getInnerHTML());
             return false;
         }
 
-
         return true;
     }
 
-
+    /**
+     * 检查是否搜索到结果
+     */
     @Override
     protected boolean handleQueryList(Browser browser, boolean retry)
             throws DOMParseException, NotFoundException {
@@ -274,7 +276,9 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
         return true;
     }
 
-
+    /**
+     * 解析检索页前5条信息，并返回公司名称匹配（当前名称或历史名称）的明细页url(也会保存检索页上的电话等信息)
+     */
     @Override
     protected String fetchBasicInfo(Browser browser, Org org) {
         SourceOrg sourceOrg = getMySourceOrg(browser);
@@ -308,11 +312,14 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
         }
     }
 
+    /**
+     * 判断查询页是否搜索到结果
+     */
     private boolean isNoData(DOMDocument doc) {
         List<DOMElement> imgs = doc.findElements(By.tagName("img"));
         for (DOMElement img : imgs) {
             String alt = img.getAttribute("alt");
-            if ((alt != null) && (alt.trim().equals("无结果"))) {
+            if ((alt != null) && ("无结果".equals(alt.trim()))) {
                 logger.warn("NOT FOUND org,set org.crawlFlag=CrawlFlag.NOFOUND");
                 return true;
             }
@@ -322,6 +329,9 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
     }
 
 
+    /**
+     * 解析检索页信息，并返回明细页url(也会保存检索页上的电话等信息)
+     */
     private String fetchBasicInfoHtml(Browser browser, Org org, DOMElement item) {
         SourceOrg sourceOrg = getMySourceOrg(browser);
         if (sourceOrg == null) {
@@ -341,7 +351,6 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                 throw new DOMParseException();
             }
 
-
             orgLink = titleLink.getAttribute("href");
             if (orgLink == null) {
                 logger.warn("NOT FOUND .name.href: " + queryOrgName);
@@ -350,13 +359,12 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                 throw new DOMParseException();
             }
 
-
             String orgName = titleLink.getInnerHTML();
-            String oldOrgName = null;
-            String infoTel = null;
+            String oldOrgName;
+            String infoTel;
             orgName = SourceUtil.trimOrgName(orgName.trim().replaceAll("<em>", "").replaceAll("</em>", "").trim());
 
-
+            //如果公司名称不匹配，查看是否能匹配上历史名称，如果还匹配不上，则返回，匹配上了，则记录历史名称
             if (!orgName.equals(queryOrgName)) {
                 DOMElement match = item.findElement(By.className("match"));
                 if (match == null) {
@@ -371,9 +379,8 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                     return null;
                 }
 
-
-                if (((DOMElement) spans.get(0)).getInnerText().trim().startsWith("历史名称")) {
-                    oldOrgName = SourceUtil.trimOrgName(((DOMElement) spans.get(1)).getInnerHTML().trim().replaceAll("<em>", "").replaceAll("</em>", "").trim());
+                if (spans.get(0).getInnerText().trim().startsWith("历史名称")) {
+                    oldOrgName = SourceUtil.trimOrgName(spans.get(1).getInnerHTML().trim().replaceAll("<em>", "").replaceAll("</em>", "").trim());
                     logger.debug("历史名称：" + oldOrgName);
                     if (!oldOrgName.equals(queryOrgName)) {
                         logger.warn("hisname NOT match! : " + queryOrgName);
@@ -387,7 +394,6 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                     org.getOldNames().add(orgHisName);
                 }
             }
-
 
             DOMElement contactItem = item.findElement(By.className("contact"));
             List<DOMElement> scripts;
@@ -406,7 +412,6 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                                 org.setContacts(mergeContact(contact, org.getContacts()));
                             }
 
-
                             scripts = col.findElements(By.tagName("script"));
                             if ((scripts != null) && (scripts.size() > 0)) {
                                 DOMElement script = scripts.get(0);
@@ -416,8 +421,8 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                                 List<String> tels = gson.fromJson(script.getInnerText(), type);
                                 for (String tel : tels) {
                                     infoTel = StringTool.trimTel(tel);
-                                    if ((infoTel != null) && (!infoTel.equals("")) && (infoTel.length() > 5) &&
-                                            (infoTel != null) && (!infoTel.equals("")) && (infoTel.length() > 5)) {
+                                    if ((infoTel != null) && (!"".equals(infoTel)) && (infoTel.length() > 5) &&
+                                            (infoTel != null) && (!"".equals(infoTel)) && (infoTel.length() > 5)) {
                                         contact = new Contact("总机");
                                         contact.setTel(infoTel);
                                         org.setContacts(mergeContact(contact, org.getContacts()));
@@ -426,7 +431,7 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                                 }
                             }
                         } else if (spans.get(0).getInnerText().trim().startsWith("邮箱")) {
-                            String email = StringTool.trimAll(((DOMElement) spans.get(1)).getInnerText());
+                            String email = StringTool.trimAll(spans.get(1).getInnerText());
                             if ((email != null) && (email.contains("@"))) {
                                 contact = new Contact("总机");
                                 contact.setEmail(email.toLowerCase());
@@ -464,7 +469,6 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
             org.setOrgName(orgName);
             logger.debug("找到的orgName: " + orgName + ",查询的orgName：" + queryOrgName);
 
-
             DOMElement header = item.findElement(By.className("header"));
             if (header == null) {
                 logger.warn("NOT FOUND .header: " + queryOrgName);
@@ -477,7 +481,6 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                 org.setStatus(tag.getInnerText().trim());
                 logger.debug("状态：" + org.getStatus());
             }
-
 
             DOMElement info = header.findElement(By.className("info"));
             if (info != null) {

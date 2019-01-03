@@ -420,12 +420,6 @@ public class ToolBar
         return menuItem;
     }
 
-    private Component createDownloadFileMenuItem() {
-        JMenuItem menuItem = new JMenuItem("Download File");
-        menuItem.addActionListener(e -> browserView.getBrowser().loadURL("http://www.etoip.com"));
-        return menuItem;
-    }
-
     private Component createGetHTMLMenuItem() {
         JMenuItem menuItem = new JMenuItem("Get HTML");
         menuItem.addActionListener(e -> {

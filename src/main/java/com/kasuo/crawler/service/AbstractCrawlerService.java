@@ -31,10 +31,8 @@ import com.teamdev.jxbrowser.chromium.events.FailLoadingEvent;
 import com.teamdev.jxbrowser.chromium.events.FinishLoadingEvent;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
@@ -44,7 +42,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.swing.*;
-import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -107,6 +104,8 @@ public abstract class AbstractCrawlerService {
     protected int crawlTelNums = 0;
     protected int crawlNoneNums = 0;
     protected int loginNums = 0;
+
+    //出现验证码次数
     protected int verifyCodeNums = 0;
     protected int verifyCodePreNums = 0;
     protected long verifyCodePrevTime = 0L;
@@ -116,8 +115,12 @@ public abstract class AbstractCrawlerService {
     protected String verifyDataResult = null;
 
     protected int continuousSaveFailCount = 0;
+
+    //页面超时次数，大于50次停机检查
     protected int continuousTimeoutCount = 0;
     protected int continuousFailCount = 0;
+
+    //页面解析错误次数，大于20次停机检查
     protected int continuousDomParseErrorCount = 0;
     protected int randWaitTimes = 0;
     protected int remainWaitTimes = 0;
@@ -189,7 +192,7 @@ public abstract class AbstractCrawlerService {
     }
 
     public void recordBeginLoadingTimes(Browser browser) {
-        if ((fetchDataStatus) || (fetchDataTestStatus)) {
+        if (fetchDataStatus || fetchDataTestStatus) {
             if (isBasicPage(browser)) {
                 loadBasicBeginTime = System.currentTimeMillis();
             } else if (isDetailPage(browser)) {
@@ -223,33 +226,26 @@ public abstract class AbstractCrawlerService {
         return loadEndTime - loadEndTime;
     }
 
-
     public void startFetch(final Browser browser) {
         Thread fetchThread = new Thread(() -> {
             todo = "";
             List<SourceInput> orgList;
             boolean needReboot = false;
 
-
             while (fetchDataStatus) {
                 try {
-
                     if (isDecline()) {
+                        //到达今日抓取数量上限，休眠1分钟
                         Thread.sleep(60000L);
-
                     } else {
+                        //如果是新的一天，重置页面的统计数据
                         checkCrawlDate();
-
-
                         if (!isCrawlTime(browser)) {
+                            //非爬虫工作时间，休眠3分钟
                             Thread.sleep(180000L);
                         } else {
-                            String testRun = CrmProperties.getProperty("testRun");
-                            if ((testRun != null) && (testRun.equalsIgnoreCase("true"))) {
-                                orgList = distributeLocalTestData();
-                            } else {
-                                orgList = getVerifyData(browser);
-                            }
+                            //获取校验数据
+                            orgList = getVerifyData(browser);
                             boolean verifyData = false;
 
                             if ((orgList == null) || (orgList.size() == 0)) {
@@ -268,11 +264,10 @@ public abstract class AbstractCrawlerService {
                                 logger.debug("verifyData = true,now start crawl verifyData...");
                             }
 
-                            if (((orgList == null) || (orgList.size() == 0)) &&
-                                    (isKeepSessionTime())) {
-                                orgList = distributeNoFoundData();
-                            }
-
+                            //当没有新数据可抓取时，抓取历史的未找到的公司（例如timeOut的，需要配合timeOut时保存Org，但是现在没保存，所以此处先注释掉）
+//                            if ((orgList == null || orgList.size() == 0) && isKeepSessionTime()) {
+//                                orgList = distributeNoFoundData();
+//                            }
 
                             if ((orgList == null) || (orgList.size() == 0)) {
                                 Thread.sleep(60000L);
@@ -283,7 +278,6 @@ public abstract class AbstractCrawlerService {
                                 for (int i = entryCount - 2; i >= 0; i--) {
                                     browser.removeNavigationEntryAtIndex(i);
                                 }
-
 
                                 browser.getCacheStorage().clearCache();
 
@@ -305,7 +299,6 @@ public abstract class AbstractCrawlerService {
                     if ((e instanceof VerifyDataException)) {
                         logger.warn("fetchThread: while loop stop because verifyData fail! ");
                         sendNotice("8");
-
 
                         resetFetchStatus(browser, "校验数据停止");
                         break;
@@ -371,26 +364,23 @@ public abstract class AbstractCrawlerService {
         }
     }
 
-
     protected List<SourceInput> getVerifyData(Browser browser) {
         logger.debug("getVerifyData ...");
         List<SourceInput> orgList = null;
         if (verifyDataDate == null) {
-
-//            verifyDataResult = refreshVerifyDataResult();
             verifyDataResult = "0";
             verifyDataDate = new Date();
-            if (verifyDataResult.equals("0")) {
+            if ("0".equals(verifyDataResult)) {
                 logger.debug("start crawl verifyData...");
                 orgList = distributeLocalVerifyData();
-            } else if (verifyDataResult.equals("3")) {
+            } else if ("3".equals(verifyDataResult)) {
                 logger.debug("verifyData no pass,stop crawler");
                 throw new VerifyDataException("校验数据停止");
             }
-        } else if (verifyDataResult.equals("0")) {
+        } else if ("0".equals(verifyDataResult)) {
             logger.debug("cotinue crawl verifyData...");
             orgList = distributeLocalVerifyData();
-        } else if (verifyDataResult.equals("3")) {
+        } else if ("3".equals(verifyDataResult)) {
             throw new VerifyDataException("校验数据停止");
         }
 
@@ -403,7 +393,6 @@ public abstract class AbstractCrawlerService {
             System.gc();
             Thread.sleep(1000L);
 
-
             boolean isTimeout = false;
             String orgName;
             String inputId;
@@ -414,6 +403,7 @@ public abstract class AbstractCrawlerService {
                     return;
                 }
 
+                //判断是否抓取过改公司，如果抓取过，则不重复抓取
                 com.kasuo.crawler.domain.Org orgTest = SpringBeanUtil.getBean(OrgDao.class).findByNameForUpdate(input.getOrgName());
                 if (orgTest != null) {
                     logger.warn("Org {} already exist!", input.getOrgName());
@@ -422,7 +412,7 @@ public abstract class AbstractCrawlerService {
                 }
 
                 if (isDecline()) {
-                    resetRawData();
+                    //TODO 到达抓取上限，停止抓取
                     return;
                 }
 
@@ -448,12 +438,11 @@ public abstract class AbstractCrawlerService {
                 sourceOrg.setInputId(inputId);
                 sourceOrg.setId(queryTime);
 
-                handleResultMap.put(Long.valueOf(queryTime), sourceOrg);
+                handleResultMap.put(queryTime, sourceOrg);
 
                 verifyCodePrevOrgNums += 1;
                 verifyCodePrevReqNums += 1;
                 verifyCodePreNums = verifyCodeNums;
-
 
                 loadBasicBeginTime = 0L;
                 loadBasicEndTime = 0L;
@@ -473,18 +462,18 @@ public abstract class AbstractCrawlerService {
 
                 for (; ; ) {
                     if (!fetchDataStatus) {
+                        //抓取状态为停止，则立即返回
                         return;
                     }
 
                     if (isDecline()) {
-                        resetRawData();
+                        //到达抓取上限，停止抓取
                         return;
                     }
 
                     loadUrlEndTime = System.currentTimeMillis();
 
-                    if ((loadUrlEndTime - loadUrlBeginTime > (getBasicPageLoadedTimes() + crawlerDetailTimeout) * 1000L) && (!fetchDataTestStatus) &&
-                            (verifyCodePreNums == verifyCodeNums)) {
+                    if ((loadUrlEndTime - loadUrlBeginTime > (getBasicPageLoadedTimes() + crawlerDetailTimeout) * 1000L) && !fetchDataTestStatus && verifyCodePreNums == verifyCodeNums) {
                         if (((loginPage ? 0 : 1) & (declineDate == null ? 1 : 0)) != 0) {
                             logger.error("等待查询结果超时" + (loadUrlEndTime - loadUrlBeginTime) / 1000L + " seconds，跳过本记录：" + queryOrgName + "\r\n");
                             queryOrgName = "NODATA";
@@ -492,7 +481,7 @@ public abstract class AbstractCrawlerService {
                             isTimeout = true;
                             crawlTimeoutErrorNums += 1;
                             sourceOrg.setCrawlEvent("6");
-                            org.setCrawlFlag(new CrawlFlag("E"));
+                            org.setCrawlFlag(new CrawlFlag(CrawlFlag.ERROR));
                             continuousTimeoutCount += 1;
                             if (continuousTimeoutCount > 50) {
                                 logger.warn("连续" + continuousTimeoutCount + "次出现超时! 重置continuousTimeoutCount为0");
@@ -500,9 +489,8 @@ public abstract class AbstractCrawlerService {
                                 continuousTimeoutCount = 0;
                             }
 
-                            saveOrgInfo(browser, org, inputId, sourceOrg.getCrawlEvent());
                             synchronized (this) {
-                                handleResultMap.remove(Long.valueOf(queryTime));
+                                handleResultMap.remove(queryTime);
                             }
                         }
                     }
@@ -524,10 +512,10 @@ public abstract class AbstractCrawlerService {
                                 continuousFailCount = 0;
                             }
 
-
                             logger.debug("org.crawlFlag=" + org.getCrawlFlag().getName() + ",storage orgInfo");
 
-                            if (!inputId.equals("VERIFY")) {
+                            if (!"VERIFY".equals(inputId)) {
+                                //非校验数据
                                 if (!queryOrgName.equals(org.getOrgName())) {
                                     boolean hisNameFound = false;
                                     for (OrgHisName hisName : org.getOldNames()) {
@@ -544,26 +532,21 @@ public abstract class AbstractCrawlerService {
                                 }
                                 SpringBeanUtil.getBean(OrgService.class).save(org, Long.parseLong(inputId));
                                 crawlCount(org);
-
-//                                saveOrgInfo(browser, org, inputId, sourceOrg.getCrawlEvent());
                             } else {
+                                //校验数据，检查是否通过校验（一共5组，有1组通过校验就算通过）
                                 input.setValidFlag(new ValidFlag("1"));
                                 if (!checkVerifyData(org, queryOrgName)) {
                                     input.setValidFlag(new ValidFlag("0"));
                                 }
-                                SourceInput last = (SourceInput) inputList.get(inputList.size() - 1);
-                                if ((last.getOrgName().equals(queryOrgName)) &&
-                                        (!checkAllVerifyData(inputList))) {
+                                SourceInput last = inputList.get(inputList.size() - 1);
+                                if (last.getOrgName().equals(queryOrgName) && !checkAllVerifyData(inputList)) {
                                     resetFetchStatus(browser, "校验数据停止");
-
-                                    setVerifyDataResult("3");
-
+                                    verifyDataResult = "3";
                                     sendMail(2, "校验数据停止，可能改版", "需要检查日志，修改程序！");
                                 }
                             }
 
-
-                            handleResultMap.remove(Long.valueOf(queryTime));
+                            handleResultMap.remove(queryTime);
                             break;
                         }
                     }
@@ -583,38 +566,20 @@ public abstract class AbstractCrawlerService {
         }
     }
 
-    private void saveOrgInfo(Browser browser, Org org, String inputId, String crawlEvent) {
-        List<NameValuePair> valuePairs = createCommonRequest("crawlerOrgService", "saveFetchedInfo");
-        Gson gson = new Gson();
-        String json = gson.toJson(org);
-        valuePairs.add(new BasicNameValuePair("json", json));
-        valuePairs.add(new BasicNameValuePair("inputId", inputId));
-        if (org.getCrawlFlag().isError()) {
-            valuePairs.add(new BasicNameValuePair("event", crawlEvent));
-        }
-        String content = httpPostWaiting(valuePairs);
-        if (content.trim().equals("")) {
-            logger.error("saveOrgInfo server NOT return orgId,orgName=" + org.getOrgName());
-            continuousSaveFailCount += 1;
-            if (continuousSaveFailCount > 10) {
-                continuousSaveFailCount = 0;
-                logger.error("saveOrgInfo server NOT return orgId,orgName=" + org.getOrgName() + ",stop crawl...");
-                resetFetchStatus(browser, "保存数据故障停止");
-            }
-        } else {
-            continuousSaveFailCount = 0;
-        }
-
-        crawlCount(org);
-    }
-
+    /**
+     * 更新统计数据
+     * 检索成功 +1
+     * 如果有手机：手机号码 +1
+     * 如果有固话：固话号码 +1
+     * 没有联系方式：无号码数 +1
+     */
     private void crawlCount(Org org) {
         int phone = 0;
         int tel = 0;
         if (org.getCrawlFlag().isSuccess()) {
             crawlSuccessNums += 1;
             for (Contact contact : org.getContacts()) {
-                if ((contact.getTel() != null) && (!contact.getTel().equals(""))) {
+                if ((contact.getTel() != null) && (!"".equals(contact.getTel()))) {
                     if (SourceUtil.isPhoneNum(contact.getTel())) {
                         phone++;
                     } else {
@@ -634,7 +599,6 @@ public abstract class AbstractCrawlerService {
             crawlNoFoundNums += 1;
         }
     }
-
 
     protected boolean checkVerifyDataTel(String tel, int areacodeLength, int telLength) {
         boolean allDigital = true;
@@ -843,29 +807,18 @@ public abstract class AbstractCrawlerService {
     }
 
 
-    protected long getBasicPageLoadedTimes() {
+    private long getBasicPageLoadedTimes() {
         if (loadBasicEndTime != 0L) {
             return (loadBasicEndTime - loadBasicBeginTime) / 1000L;
         }
         return 0L;
     }
 
-
     protected abstract String getBasicUrl(String paramString, long paramLong);
 
-
-    protected void sendMail(int level, String subject, String content) {
+    private void sendMail(int level, String subject, String content) {
         //TODO
 //        NoticeTool.sendMail(level, crawlerName + "[" + crawlerUser + "]" + subject, content);
-    }
-
-
-    protected void sendSMS(int level, String smsCode, Map<String, String> map) {
-        if (map == null) {
-            map = new HashMap();
-        }
-        //TODO
-//        NoticeTool.sendSMS(0, smsCode, map);
     }
 
     private List<SourceInput> distributeRawData() {
@@ -879,26 +832,11 @@ public abstract class AbstractCrawlerService {
         }).collect(Collectors.toList());
     }
 
-    public List<SourceInput> distributeNoFoundData() {
-        List<SourceInput> list = null;
-        List<NameValuePair> valuePairs = createCommonRequest("crawlerOrgService", "distributeNoFoundData");
-        String content = httpPostWaiting(valuePairs);
-
-        if (content.equals("")) {
-            logger.debug("content is '',no data need to crawl");
-        } else {
-            Gson gson = new Gson();
-            Type type = new TypeToken<List<SourceInput>>() {}.getType();
-            list = gson.fromJson(content, type);
-        }
-        return list;
-    }
-
-
+    /**
+     * 停止抓取
+     */
     public void resetFetchStatus(Browser browser, String errMsg) {
         logger.warn("resetFetchStatus,errMsg=" + errMsg);
-
-
         fetchDataStatus = false;
         fetchDataTestStatus = false;
         isOrgInfoBasic = false;
@@ -909,15 +847,13 @@ public abstract class AbstractCrawlerService {
         if (menuItem2 != null) {
             menuItem2.setText("启动抓取DEBUG");
         }
-        if ((browser != null) && (!errMsg.equals(""))) {
+        if ((browser != null) && (!"".equals(errMsg))) {
             todo = errMsg;
         }
     }
 
-
     public void rebootFetchStatus(Browser browser, String errMsg) {
         logger.warn("rebootFetchStatus,errMsg=" + errMsg);
-
 
         fetchDataStatus = false;
         fetchDataTestStatus = false;
@@ -932,7 +868,6 @@ public abstract class AbstractCrawlerService {
         }
     }
 
-
     public void rebootOverFetchStatus(Browser browser) {
         if (menuItem != null) {
             menuItem.setText("停止抓取...");
@@ -944,31 +879,30 @@ public abstract class AbstractCrawlerService {
         }
     }
 
-
-    private void resetRawData() {
-        List<NameValuePair> valuePairs = createCommonRequest("crawlerOrgService", "resetRawData");
-        httpPostWaiting(valuePairs);
-    }
-
-
+    /**
+     * 判断是否在爬虫工作时间内
+     * 目前的工作时间是7:40 ~ 23:12
+     * @param browser
+     * @return 是否在爬虫工作时间内
+     */
     private boolean isCrawlTime(Browser browser) {
         Calendar now = Calendar.getInstance();
 
         Calendar startTime = Calendar.getInstance();
-        startTime.set(1, now.get(1));
-        startTime.set(2, now.get(2));
-        startTime.set(5, now.get(5));
-        startTime.set(11, crawlerStartHour);
-        startTime.set(12, crawlStartMinute);
-        startTime.set(13, 0);
+        startTime.set(Calendar.YEAR, now.get(Calendar.YEAR));
+        startTime.set(Calendar.MONTH, now.get(Calendar.MONTH));
+        startTime.set(Calendar.DAY_OF_MONTH, now.get(Calendar.DAY_OF_MONTH));
+        startTime.set(Calendar.HOUR_OF_DAY, crawlerStartHour);
+        startTime.set(Calendar.MINUTE, crawlStartMinute);
+        startTime.set(Calendar.SECOND, 0);
 
         Calendar endTime = Calendar.getInstance();
-        endTime.set(1, now.get(1));
-        endTime.set(2, now.get(2));
-        endTime.set(5, now.get(5));
-        endTime.set(11, crawlerEndHour);
-        endTime.set(12, crawlEndMinute);
-        endTime.set(13, 0);
+        endTime.set(Calendar.YEAR, now.get(Calendar.YEAR));
+        endTime.set(Calendar.MONTH, now.get(Calendar.MONTH));
+        endTime.set(Calendar.DAY_OF_MONTH, now.get(Calendar.DAY_OF_MONTH));
+        endTime.set(Calendar.HOUR_OF_DAY, crawlerEndHour);
+        endTime.set(Calendar.MINUTE, crawlEndMinute);
+        endTime.set(Calendar.SECOND, 0);
 
         if ((now.after(startTime)) && (now.before(endTime))) {
             logger.debug("isCrawlTime=true");
@@ -999,25 +933,25 @@ public abstract class AbstractCrawlerService {
 
         int randNum = CodecTool.random(5, 40);
         Calendar startTime = Calendar.getInstance();
-        startTime.set(1, now.get(1));
-        startTime.set(2, now.get(2));
-        startTime.set(5, now.get(5));
-        startTime.set(11, 8);
-        startTime.set(12, randNum);
-        startTime.set(13, 0);
+        startTime.set(Calendar.YEAR, now.get(Calendar.YEAR));
+        startTime.set(Calendar.MONTH, now.get(Calendar.MONTH));
+        startTime.set(Calendar.DAY_OF_MONTH, now.get(Calendar.DAY_OF_MONTH));
+        startTime.set(Calendar.HOUR_OF_DAY, 8);
+        startTime.set(Calendar.MINUTE, randNum);
+        startTime.set(Calendar.SECOND, 0);
 
         randNum = CodecTool.random(12, 30);
         Calendar endTime = Calendar.getInstance();
-        endTime.set(1, now.get(1));
-        endTime.set(2, now.get(2));
-        endTime.set(5, now.get(5));
-        endTime.set(11, 23);
-        endTime.set(12, randNum);
-        endTime.set(13, 0);
+        endTime.set(Calendar.YEAR, now.get(Calendar.YEAR));
+        endTime.set(Calendar.MONTH, now.get(Calendar.MONTH));
+        endTime.set(Calendar.DAY_OF_MONTH, now.get(Calendar.DAY_OF_MONTH));
+        endTime.set(Calendar.HOUR_OF_DAY, 23);
+        endTime.set(Calendar.MINUTE, randNum);
+        endTime.set(Calendar.SECOND, 0);
 
         logger.debug("isKeepSessionTime: nowTime=" + DateTool.getStringDateTime(now.getTime()) + ",startTime=" + DateTool.getStringDateTime(startTime.getTime()) + ",endTime=" + DateTool.getStringDateTime(endTime.getTime()));
 
-        if ((now.after(startTime)) && (now.before(endTime))) {
+        if (now.after(startTime) && now.before(endTime)) {
             logger.debug("isKeepSessionTime: is valid time,start check lastDistributeNoFoundDataDate");
             if (lastDistNoFoundOrgDataDate == null) {
                 lastDistNoFoundOrgDataDate = now.getTime();
@@ -1031,7 +965,7 @@ public abstract class AbstractCrawlerService {
                 randNum = CodecTool.random(5, 3);
                 last.add(11, randNum);
                 logger.debug("isKeepSessionTime: lastDistributeNoFoundDataDate add " + randNum + " hours,is: " + DateTool.getStringDateTime(last.getTime()));
-                if ((last.after(startTime)) && (last.before(endTime)) && (now.after(last))) {
+                if (last.after(startTime) && last.before(endTime) && now.after(last)) {
                     lastDistNoFoundOrgDataDate = now.getTime();
                     logger.debug("isKeepSessionTime: return true,lastDistributeNoFoundDataDate is set to now");
                     return true;
@@ -1046,28 +980,8 @@ public abstract class AbstractCrawlerService {
             return true;
         }
 
-
         return false;
     }
-
-
-    private boolean isVerifyDataTime() {
-        Calendar now = Calendar.getInstance();
-        Calendar startTime = Calendar.getInstance();
-        startTime.set(1, now.get(1));
-        startTime.set(2, now.get(2));
-        startTime.set(5, now.get(5));
-        startTime.set(11, 8);
-        startTime.set(12, 3);
-        startTime.set(13, 0);
-
-        if (now.after(startTime)) {
-            logger.debug("isVerifyDataTime: is valid time,start check verifyData");
-            return true;
-        }
-        return false;
-    }
-
 
     private List<SourceInput> distributeLocalVerifyData() {
         verifyDataDate = new Date();
@@ -1103,18 +1017,9 @@ public abstract class AbstractCrawlerService {
         return result;
     }
 
-
-    private List<SourceInput> distributeLocalTestData() {
-        List<SourceInput> result = new ArrayList();
-        SourceInput input = new SourceInput();
-        input.setId("402880ee58a19dc80158a202950f0c11");
-        input.setOrgName("北京中晶环境科技股份有限公司");
-        result.add(input);
-
-        return result;
-    }
-
-
+    /**
+     * 如果过了一天，需要重置页面的统计数据
+     */
     private void checkCrawlDate() {
         if (crawlDate != null) {
             if (!DateTool.getStringDate().equals(crawlDate)) {
@@ -1131,8 +1036,10 @@ public abstract class AbstractCrawlerService {
         }
     }
 
-
-    public void resetCrawlStat() {
+    /**
+     * 更新页面的统计数据
+     */
+    private void resetCrawlStat() {
         crawlTotalNums = 0;
         crawlSuccessNums = 0;
         crawlNoFoundNums = 0;
@@ -1152,15 +1059,18 @@ public abstract class AbstractCrawlerService {
         verifyCodePrevOrgNums = 0;
         verifyCodePrevReqNums = 0;
 
-
         continuousTimeoutCount = 0;
         continuousFailCount = 0;
     }
 
-
-    protected boolean isDecline() {
+    /**
+     * 判断是否到达今日抓取数量上限
+     *
+     * @return 是否到达今日抓取数量上限
+     */
+    private boolean isDecline() {
         if (declineDate != null) {
-            if (!DateTool.getStringDate().equals(declineDate)) {
+            if (!Objects.equals(DateTool.getStringDate(), declineDate)) {
                 logger.debug("isDecline: now is next day,check now is after 0:05-15");
                 int randNum = CodecTool.random(5, 10);
                 Calendar now = Calendar.getInstance();
@@ -1181,139 +1091,12 @@ public abstract class AbstractCrawlerService {
         return false;
     }
 
-
-    public String getServerAddress() {
-        String localServer = CrmProperties.getProperty("localServer");
-        if ((localServer != null) && (localServer.equals("true"))) {
-            serverIp = CrmProperties.getProperty("server");
-        } else if (serverIp == null) {
-            serverIp = queryServerIp();
-            if (serverIp != null) {
-                serverIp = ("http://" + serverIp + ":12221/crm/");
-            }
-        }
-
-
-        return serverIp;
-    }
-
-
-    public void resetServerIp() {
-        serverIp = null;
-    }
-
-    private String queryServerIp() {
-        HttpGet httpGet = null;
-        CloseableHttpClient httpclient = HttpClients.createDefault();
-        CloseableHttpResponse response = null;
-        HttpEntity entity = null;
-        String content = null;
-        try {
-            httpGet = new HttpGet("http://123.56.80.95/servlet/ServerIp?action=query&sign=" + serverSign);
-            response = httpclient.execute(httpGet);
-            entity = response.getEntity();
-            if (entity != null) {
-                content = StringTool.trimAll(EntityUtils.toString(entity, "GBK"));
-
-                logger.debug("server IP: " + content);
-            } else {
-                logger.error("queryServerIp: can't get response entity");
-                return null;
-            }
-            response.close();
-            httpclient.close();
-        } catch (Throwable e) {
-            logger.error("queryServerIp error", e);
-            return null;
-        }
-
-        return content;
-    }
-
-
-    public List<NameValuePair> createCommonRequest(String serviceName, String methodName) {
-        List<NameValuePair> valuePairs = new ArrayList();
-        valuePairs.add(new BasicNameValuePair("service", serviceName));
-        valuePairs.add(new BasicNameValuePair("method", methodName));
-        valuePairs.add(new BasicNameValuePair("crawlerType", crawlerType));
-        valuePairs.add(new BasicNameValuePair("crawlerUser", crawlerUser));
-        valuePairs.add(new BasicNameValuePair("signedcode", "df3gsfd6x29zm2g"));
-
-        return valuePairs;
-    }
-
-
-    public String httpPost(List<NameValuePair> valuePairs)
-            throws IOException {
-        CloseableHttpClient httpclient = null;
-        HttpPost httpPost = null;
-        CloseableHttpResponse response = null;
-        String content = null;
-        String service = "";
-        String method = "";
-        for (NameValuePair pair : valuePairs) {
-            if (pair.getName().equals("service")) {
-                service = pair.getValue();
-            }
-            if (pair.getName().equals("method")) {
-                method = pair.getValue();
-            }
-        }
-        logger.debug("httpPost begin: service=" + service + ",method=" + method + ",crawlerType=" + crawlerType + ",crawlerUser=" + crawlerUser);
-        try {
-            String url = getServerAddress() + "json.action";
-            httpclient = HttpClients.createDefault();
-            httpPost = new HttpPost(url);
-
-            UrlEncodedFormEntity formEntity = new UrlEncodedFormEntity(valuePairs, "UTF-8");
-            httpPost.setEntity(formEntity);
-            response = httpclient.execute(httpPost);
-            logger.debug("response status: " + response.getStatusLine().getStatusCode());
-            content = EntityUtils.toString(response.getEntity(), "GBK");
-            logger.debug("response content: " + content);
-        } catch (IOException e) {
-            logger.warn(" httpclient.execute error,throw IOException,retry get serverIP");
-            throw e;
-        } catch (Throwable e) {
-            logger.error("httpclient request error", e);
-            try {
-                response.close();
-                httpclient.close();
-            } catch (Throwable e1) {
-                logger.error("close httpclient error", e1);
-            }
-        } finally {
-            try {
-                response.close();
-                httpclient.close();
-            } catch (Throwable e) {
-                logger.error("close httpclient error", e);
-            }
-        }
-
-        logger.debug("httpPost end");
-        return content;
-    }
-
-
-    public String httpPostWaiting(List<NameValuePair> valuePairs) {
-        for (; ; ) {
-            try {
-                return httpPost(valuePairs);
-            } catch (IOException e) {
-                logger.warn("httpPostWaiting: can't connect crmServer,try get serverIP again");
-                resetServerIp();
-                try {
-                    Thread.sleep(60000L);
-                } catch (InterruptedException e1) {
-                    e1.printStackTrace();
-                }
-            } catch (Throwable localThrowable) {
-            }
-        }
-    }
-
-    public boolean checkAllVerifyData(List<SourceInput> inputList) {
+    /**
+     * 只要有一组数据通过校验就算通过校验，目前是有五组
+     * @param inputList 校验数据
+     * @return 是否通过校验
+     */
+    private boolean checkAllVerifyData(List<SourceInput> inputList) {
         boolean foundPass = false;
         for (SourceInput input : inputList) {
             if (input.getValidFlag().isValid()) {
@@ -1323,55 +1106,17 @@ public abstract class AbstractCrawlerService {
         }
         if (foundPass) {
             logger.debug("checkAllVerifyData: passed");
-//            setVerifyDataResult("2");
             verifyDataResult = "2";
         } else {
             logger.debug("checkAllVerifyData: NOT passed");
-            setVerifyDataResult("3");
             verifyDataResult = "3";
         }
 
         return foundPass;
     }
 
-
-    public void setVerifyDataResult(String result) {
-        logger.debug("setVerifyDataResult");
-        List<NameValuePair> valuePairs = createCommonRequest("crawlerOrgService", "setVerifyDataResult");
-        valuePairs.add(new BasicNameValuePair("result", result));
-        httpPostWaiting(valuePairs);
-    }
-
-
-    public String refreshVerifyDataResult() {
-        logger.debug("refreshVerifyDataResult start...");
-        String result = null;
-        try {
-            for (; ; ) {
-                List<NameValuePair> valuePairs = createCommonRequest("crawlerOrgService", "refreshVerifyDataResult");
-                valuePairs.add(new BasicNameValuePair("startFlag", crawlerStartVerify));
-                result = httpPostWaiting(valuePairs);
-                logger.debug("refreshVerifyDataResult: " + result);
-                if (!result.equals("1")) {
-                    logger.debug("refreshVerifyDataResult get result: " + result + ",stop loop");
-                    break;
-                }
-                sleep(60000L);
-            }
-        } catch (Throwable e) {
-            logger.error("refreshVerifyDataResult error", e);
-        }
-
-        return result;
-    }
-
-
-    public void initBrowser(Browser browser) {
-    }
-
-
     public String pageType(Browser browser) {
-        String s = null;
+        String s;
 
         if (isBasicPage(browser)) {
             s = "概要页面";
@@ -1389,15 +1134,11 @@ public abstract class AbstractCrawlerService {
         return s;
     }
 
-
     protected abstract boolean isDeclinePage(Browser paramBrowser);
-
 
     protected abstract boolean isHomePage(Browser paramBrowser);
 
-
     protected abstract boolean isLoginPage(Browser paramBrowser);
-
 
     protected abstract boolean isLoginIdentityPage(Browser paramBrowser);
 
@@ -1419,7 +1160,10 @@ public abstract class AbstractCrawlerService {
         }
     }
 
-    protected void handleDeclinePage(Browser browser) {
+    /**
+     * 数据到达每日上限，设置declineDate，第二天会重新把declineDate置为null
+     */
+    private void handleDeclinePage() {
         declineDate = DateTool.getStringDate();
         logger.warn("当前账户达到每日查询数据上限，系统暂停抓取数据，等待第二天自动清除上限限制");
         showDebugInfoTodo("数据上限");
@@ -1427,7 +1171,7 @@ public abstract class AbstractCrawlerService {
     }
 
 
-    protected void handleVerifyCodePage(Browser browser) {
+    private void handleVerifyCodePage(Browser browser) {
         verifyCodeNums += 1;
         String verifyTimes = "0";
         if (verifyCodePrevTime != 0L) {
@@ -1449,16 +1193,21 @@ public abstract class AbstractCrawlerService {
     }
 
 
-    protected SourceOrg getMySourceOrg(Browser browser) {
+    /**
+     * 根据页面上的请求时间戳，从缓存中获取需要爬取的公司信息
+     * @param browser
+     * @return
+     */
+    SourceOrg getMySourceOrg(Browser browser) {
         String url = browser.getURL();
         String queryTime = null;
         int i = url.indexOf('?');
         if (i != -1) {
             String s = url.substring(i + 1);
             String[] ss = s.split("&");
-            for (int k = 0; k < ss.length; k++) {
-                String[] sss = ss[k].split("=");
-                if (sss[0].equals("et")) {
+            for (String s1 : ss) {
+                String[] sss = s1.split("=");
+                if ("et".equals(sss[0])) {
                     queryTime = sss[1];
                     break;
                 }
@@ -1466,7 +1215,7 @@ public abstract class AbstractCrawlerService {
         }
         if (queryTime != null) {
             synchronized (this) {
-                return (SourceOrg) handleResultMap.get(Long.valueOf(Long.parseLong(queryTime)));
+                return handleResultMap.get(Long.parseLong(queryTime));
             }
         }
         //et应该就是请求时间戳 tony
@@ -1483,7 +1232,6 @@ public abstract class AbstractCrawlerService {
             org.setCrawlFlag(new CrawlFlag("E"));
         }
     }
-
 
     protected abstract boolean handleQueryNums(Browser paramBrowser, boolean paramBoolean)
             throws DOMParseException, NotFoundException;
@@ -1614,32 +1362,7 @@ public abstract class AbstractCrawlerService {
         }
     }
 
-    private void showDebugTimes() {
-        try {
-            Browser browser = TabFactory.browserHome;
-            if (browser == null) {
-                return;
-            }
-
-            DOMDocument doc = browser.getDocument();
-            if (doc != null) {
-                String times = null;
-                times = "等待计时：" + randWaitTimes + "/" + remainWaitTimes;
-
-                DOMElement timeDiv = doc.findElement(By.id("tomDebugTime"));
-                if (timeDiv == null) {
-                    createDebugInfo();
-                    timeDiv = doc.findElement(By.id("tomDebugTime"));
-                }
-                timeDiv.setInnerHTML(times);
-            }
-        } catch (Throwable localThrowable) {
-        }
-    }
-
-
-    public void handleOrgInfo(Browser browser, FinishLoadingEvent event)
-            throws Exception {
+    public void handleOrgInfo(Browser browser, FinishLoadingEvent event) {
         loginPage = false;
 
         if ((event.isMainFrame()) && (isLoginPage(browser))) {
@@ -1652,7 +1375,8 @@ public abstract class AbstractCrawlerService {
         }
 
         if ((event.isMainFrame()) && (isDeclinePage(browser))) {
-            handleDeclinePage(browser);
+            //到达每日数据上限，设置declineDate，爬虫停止抓取
+            handleDeclinePage();
             return;
         }
 
@@ -1683,12 +1407,14 @@ public abstract class AbstractCrawlerService {
             Org org = sourceOrg.getOrg();
 
             if (isBasicPage(browser)) {
+                //检索页
+
                 logger.debug("search org basic info: handle document begin...");
+
+                //检查如果没有搜索到结果，则失败条数crawlDomErrorNums + 1，并返回
                 try {
                     boolean handleQueryNumsResult = handleQueryNums(browser, true);
                     if (!handleQueryNumsResult) {
-
-
                         sleep(10000L);
                         handleQueryNumsResult = handleQueryNums(browser, false);
                         if (!handleQueryNumsResult) {
@@ -1697,13 +1423,14 @@ public abstract class AbstractCrawlerService {
                     }
                 } catch (DOMParseException e) {
                     sourceOrg.setCrawlEvent("7");
-                    org.setCrawlFlag(new CrawlFlag("E"));
+                    org.setCrawlFlag(new CrawlFlag(CrawlFlag.ERROR));
                     return;
                 } catch (NotFoundException e) {
-                    org.setCrawlFlag(new CrawlFlag("0"));
+                    org.setCrawlFlag(new CrawlFlag(CrawlFlag.NOFOUND));
                     return;
                 }
 
+                //检查如果没有搜索到结果，则失败条数crawlDomErrorNums + 1，并返回
                 try {
                     boolean handleQueryListResult = handleQueryList(browser, true);
                     if (!handleQueryListResult) {
@@ -1714,17 +1441,19 @@ public abstract class AbstractCrawlerService {
                     }
                 } catch (DOMParseException e) {
                     sourceOrg.setCrawlEvent("7");
-                    org.setCrawlFlag(new CrawlFlag("E"));
+                    org.setCrawlFlag(new CrawlFlag(CrawlFlag.ERROR));
                     return;
                 } catch (NotFoundException e) {
-                    org.setCrawlFlag(new CrawlFlag("0"));
+                    org.setCrawlFlag(new CrawlFlag(CrawlFlag.NOFOUND));
                     return;
                 }
 
                 String url;
                 try {
+                    //解析检索页信息，并返回明细页url
                     url = fetchBasicInfo(browser, org);
                 } catch (DOMParseException e) {
+                    //解析异常，超过20次，停机检查
                     continuousDomParseErrorCount += 1;
                     if (continuousDomParseErrorCount > 20) {
                         resetFetchStatus(browser, "查询故障");
@@ -1734,14 +1463,13 @@ public abstract class AbstractCrawlerService {
                     logger.warn("fetchBasicInfo parseDOM error,give up search org detail info");
                     crawlDomErrorNums += 1;
                     sourceOrg.setCrawlEvent("7");
-                    org.setCrawlFlag(new CrawlFlag("E"));
+                    org.setCrawlFlag(new CrawlFlag(CrawlFlag.ERROR));
                     return;
                 }
 
-
                 continuousDomParseErrorCount = 0;
 
-
+                //如果有明细页，就加载明细页，没有就返回
                 if (url != null) {
                     logger.debug("search org basic info: handle document end, FOUND org basic info, detail info url: " + url);
                     sleep(1000L);
@@ -1753,9 +1481,10 @@ public abstract class AbstractCrawlerService {
                     browser.loadURL(url + "?et=" + sourceOrg.getId());
                 } else {
                     logger.debug("NOT FOUND org basic info,give up search org detail info");
-                    org.setCrawlFlag(new CrawlFlag("0"));
+                    org.setCrawlFlag(new CrawlFlag(CrawlFlag.NOFOUND));
                 }
             } else {
+                //明细页
                 logger.debug("search org detail info: handle document begin...");
                 try {
                     fetchDetailInfo(event.getBrowser(), org);
@@ -1768,12 +1497,12 @@ public abstract class AbstractCrawlerService {
                     }
                     logger.debug("fetchDetailInfo parse error,give up search org detail info");
                     sourceOrg.setCrawlEvent("7");
-                    org.setCrawlFlag(new CrawlFlag("E"));
+                    org.setCrawlFlag(new CrawlFlag(CrawlFlag.ERROR));
                     return;
                 }
 
                 continuousDomParseErrorCount = 0;
-                org.setCrawlFlag(new CrawlFlag("1"));
+                org.setCrawlFlag(new CrawlFlag(CrawlFlag.SUCCESS));
                 logger.debug("search org detail info: handle document end");
             }
         }
@@ -1802,8 +1531,9 @@ public abstract class AbstractCrawlerService {
             currencyType = new CurrencyType("AUD");
         } else if (capitalUnit.contains("瑞郎")) {
             currencyType = new CurrencyType("CHF");
-        } else
+        } else {
             currencyType = new CurrencyType("n");
+        }
         return currencyType;
     }
 
@@ -1852,21 +1582,25 @@ public abstract class AbstractCrawlerService {
         return new OrgType("1");
     }
 
+    /**
+     * 发送异常消息给值日的员工（出现验证码，需要重新登录，crawler崩溃等）
+     * @param eventId 事件ID
+     */
     public void sendNotice(String eventId) {
         logger.info("sendNotice: eventId=" + eventId);
-        List<NameValuePair> valuePairs = createCommonRequest("crawlerOrgService", "receiveNotice");
-        valuePairs.add(new BasicNameValuePair("event", eventId));
-        httpPostWaiting(valuePairs);
+        //TODO 发送异常消息给值日的员工（出现验证码，需要重新登录，crawler崩溃等）
+//        List<NameValuePair> valuePairs = createCommonRequest("crawlerOrgService", "receiveNotice");
+//        valuePairs.add(new BasicNameValuePair("event", eventId));
+//        httpPostWaiting(valuePairs);
     }
 
     public void sendNotice(String eventId, String flag) {
         logger.info("sendNotice: eventId=" + eventId);
-        List<NameValuePair> valuePairs = createCommonRequest("crawlerOrgService", "receiveNotice");
-        valuePairs.add(new BasicNameValuePair("event", eventId));
-        valuePairs.add(new BasicNameValuePair("flag", flag));
-        httpPostWaiting(valuePairs);
+//        List<NameValuePair> valuePairs = createCommonRequest("crawlerOrgService", "receiveNotice");
+//        valuePairs.add(new BasicNameValuePair("event", eventId));
+//        valuePairs.add(new BasicNameValuePair("flag", flag));
+//        httpPostWaiting(valuePairs);
     }
-
 
     public static void sleep(long times) {
         try {
@@ -1962,11 +1696,6 @@ public abstract class AbstractCrawlerService {
 
         return BrowserKeyEvent.KeyCode.VK_0;
     }
-
-
-    public static void main(String[] args) {
-    }
-
 
     public void handleFailLoadingFrame(FailLoadingEvent event) {
         synchronized (this) {

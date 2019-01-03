@@ -11,7 +11,7 @@ import java.util.List;
  */
 public class UniqueFilter implements ResetFilter<HSSFRow> {
 
-    private static final int TRADEMARK_COLUMN = 2;
+    private static final int TRADEMARK_COLUMN = 1;
     private static List<Integer> trademarkList = new ArrayList<>();
 
     @Override

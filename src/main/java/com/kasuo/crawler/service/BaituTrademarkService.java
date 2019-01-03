@@ -48,7 +48,7 @@ public class BaituTrademarkService {
     private ExcelStatusDao excelStatusDao;
 
     static {
-        filterList.add(new StatusFilter());
+//        filterList.add(new StatusFilter());
         filterList.add(new ApplicantFilter());
         filterList.add(new UniqueFilter());
     }
@@ -160,14 +160,14 @@ public class BaituTrademarkService {
 
         Trademark trademark = new Trademark();
         trademark.setExcelStatusId(excelStatusId);
-        trademark.setRegistrationNo(Integer.parseInt(row.getCell(2).getStringCellValue()));
-        trademark.setTrademark(row.getCell(3).getStringCellValue());
+        trademark.setRegistrationNo(Integer.parseInt(row.getCell(1).getStringCellValue()));
+        trademark.setTrademark(row.getCell(2).getStringCellValue());
         trademark.setDate(row.getCell(4).getStringCellValue());
-        trademark.setApplicant(row.getCell(5).getStringCellValue());
+        trademark.setApplicant(row.getCell(3).getStringCellValue());
         trademark.setAddress(row.getCell(6).getStringCellValue());
         trademark.setAgent(row.getCell(7).getStringCellValue());
 //        trademark.setService(row.getCell(8).getStringCellValue());
-        trademark.setStatus("待审中".equals(row.getCell(8).getStringCellValue()) ? 1 : null);
+//        trademark.setStatus("待审中".equals(row.getCell(8).getStringCellValue()) ? 1 : null);
 
         return trademarkDao.insert(trademark);
     }

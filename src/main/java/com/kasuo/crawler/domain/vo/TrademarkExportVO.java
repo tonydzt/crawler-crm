@@ -11,6 +11,7 @@ public class TrademarkExportVO {
 
     private Long id;
     private Long orgId;
+    private Long category;
     private String applicant;
     private String legalPerson;
     private String contact;
@@ -19,6 +20,7 @@ public class TrademarkExportVO {
     private String registrationNo;
     private String date;
     private Boolean isAgain;
+    private String assignmentName;
 
     public Long getId() {
         return id;
@@ -34,6 +36,14 @@ public class TrademarkExportVO {
 
     public void setOrgId(Long orgId) {
         this.orgId = orgId;
+    }
+
+    public Long getCategory() {
+        return category;
+    }
+
+    public void setCategory(Long category) {
+        this.category = category;
     }
 
     public String getApplicant() {
@@ -100,15 +110,30 @@ public class TrademarkExportVO {
         isAgain = again;
     }
 
+    public String getAssignmentName() {
+        return assignmentName;
+    }
+
+    public void setAssignmentName(String assignmentName) {
+        this.assignmentName = assignmentName;
+    }
+
     public List<Object> getExcelRow() {
         List<Object> row = new ArrayList<>();
         row.add(applicant);
-        row.add(legalPerson);
         row.add(contact);
         row.add(address);
+        row.add(null);
+        row.add(null);
+        row.add(null);
         row.add(trademark);
         row.add(registrationNo);
         row.add(date);
+        row.add(category);
+        row.add(assignmentName);
+        row.add(legalPerson);
+        row.add(null);
+        row.add(null);
         row.add(isAgain ? "老客户新机会" : "新机会");
         return row;
     }

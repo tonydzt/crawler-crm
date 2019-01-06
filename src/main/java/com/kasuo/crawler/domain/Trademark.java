@@ -10,6 +10,7 @@ public class Trademark {
 
     private Long id;
     private Long excelStatusId;
+    private Integer category;
     private Integer registrationNo;
     private String trademark;
     private String date;
@@ -38,6 +39,14 @@ public class Trademark {
 
     public void setExcelStatusId(Long excelStatusId) {
         this.excelStatusId = excelStatusId;
+    }
+
+    public Integer getCategory() {
+        return category;
+    }
+
+    public void setCategory(Integer category) {
+        this.category = category;
     }
 
     public Integer getRegistrationNo() {

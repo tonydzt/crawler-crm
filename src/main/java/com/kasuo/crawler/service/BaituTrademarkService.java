@@ -160,6 +160,7 @@ public class BaituTrademarkService {
 
         Trademark trademark = new Trademark();
         trademark.setExcelStatusId(excelStatusId);
+        trademark.setCategory(Integer.parseInt(row.getCell(0).getStringCellValue()));
         trademark.setRegistrationNo(Integer.parseInt(row.getCell(1).getStringCellValue()));
         trademark.setTrademark(row.getCell(2).getStringCellValue());
         trademark.setDate(row.getCell(4).getStringCellValue());

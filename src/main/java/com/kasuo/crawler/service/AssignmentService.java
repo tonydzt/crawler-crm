@@ -33,7 +33,7 @@ public class AssignmentService {
 
     private static final Logger logger = LoggerFactory.getLogger(AssignmentService.class);
 
-    private static List<String> exportExcelHeads = Lists.newArrayList("客户名称",	"法人",	"电话",	"地址",	"商标名称",	"注册号", "申请日期	", "机会类型");
+    private static List<String> exportExcelHeads = Lists.newArrayList("客户名称(必填)",	"电话",	"地址",	"跟进状态",	"下次跟进时间",	"备注", "商标名称	", "注册号", "申请时间", "类别", "负责人", "联系人姓名", "联系人电话", "联系人手机", "机会类型");
 
     @Autowired
     private ExcelConfig excelConfig;
@@ -86,7 +86,7 @@ public class AssignmentService {
             if (num > 0) {
                 List<TrademarkExportVO> newTrademarkExportVOList = trademarkDao.findNewCustomerChance(excelStatusIdStrs, 200);
                 if (newTrademarkExportVOList != null && newTrademarkExportVOList.size() > 0) {
-                    List<TrademarkExportVO> combineTrademarkExportVOList = combine(newTrademarkExportVOList, num, trademarkIds);
+                    List<TrademarkExportVO> combineTrademarkExportVOList = combine(newTrademarkExportVOList, num, trademarkIds, name);
                     dataList.addAll(combineTrademarkExportVOList);
                     List<Long> orgIds = combineTrademarkExportVOList.stream().map(TrademarkExportVO::getOrgId).collect(Collectors.toList());
                     orgDao.updateEmployeeId(orgIds, employee.getId());
@@ -154,7 +154,7 @@ public class AssignmentService {
         }
     }
 
-    private List<TrademarkExportVO> combine (List<TrademarkExportVO> originList, int num, List<String> trademarkIds) {
+    private List<TrademarkExportVO> combine (List<TrademarkExportVO> originList, int num, List<String> trademarkIds, String assignmentName) {
 
         Map<Long, List<TrademarkExportVO>> map = originList.stream().collect(Collectors.groupingBy(TrademarkExportVO::getOrgId))
                 .entrySet().stream().limit(num).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -173,6 +173,7 @@ public class AssignmentService {
 
             trademarkExportVO.setTrademark(trademark);
             trademarkExportVO.setRegistrationNo(registrationNo);
+            trademarkExportVO.setAssignmentName(assignmentName);
             returnList.add(trademarkExportVO);
         }
 

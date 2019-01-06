@@ -27,11 +27,12 @@ public class TrademarkDao {
     protected JdbcTemplate jdbcTemplate;
 
     public boolean insert(Trademark trademark) {
-        String sql = "insert into trademark (excel_status_id, registration_no, trademark, date, applicant, address, agent, service, status, mobile, tel) values " +
-                "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "insert into trademark (excel_status_id, category, registration_no, trademark, date, applicant, address, agent, service, status, mobile, tel) values " +
+                "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         List<Object> params = new ArrayList<>();
         params.add(trademark.getExcelStatusId());
+        params.add(trademark.getCategory());
         params.add(trademark.getRegistrationNo());
         params.add(trademark.getTrademark());
         params.add(trademark.getDate());
@@ -70,7 +71,7 @@ public class TrademarkDao {
     }
 
     public List<TrademarkExportVO> findOldCustomerNewChance(Long employeeId, List<String> excelStatusList) {
-        String sql = "SELECT trademark.id, trademark.org_id, applicant, legal_person, address, trademark, registration_no, date, is_again FROM trademark LEFT JOIN org " +
+        String sql = "SELECT trademark.id, trademark.category, trademark.org_id, applicant, legal_person, address, trademark, registration_no, date, is_again FROM trademark LEFT JOIN org " +
                 " ON trademark.org_id = org.id AND trademark.is_again = 1 AND trademark.employee_id IS NULL AND trademark.excel_status_id IN (" + String.join(",", excelStatusList) + ")" +
                 " WHERE org.has_contact = 1 AND org.employee_id = ?";
 
@@ -79,7 +80,7 @@ public class TrademarkDao {
     }
 
     public List<TrademarkExportVO> findNewCustomerChance(List<String> excelStatusList, Integer num) {
-        String sql = "SELECT trademark.id, trademark.org_id, applicant, legal_person, address, trademark, registration_no, date, 0 is_again FROM trademark LEFT JOIN org" +
+        String sql = "SELECT trademark.id, trademark.category, trademark.org_id, applicant, legal_person, address, trademark, registration_no, date, 0 is_again FROM trademark LEFT JOIN org" +
                 " ON trademark.org_id = org.id AND trademark.employee_id IS NULL AND trademark.excel_status_id IN (" + String.join(",", excelStatusList) + ")" +
                 " WHERE org.has_contact = 1 AND org.employee_id IS NULL ORDER BY applicant LIMIT ?";
 
@@ -102,6 +103,7 @@ public class TrademarkDao {
         return (resultSet, i) -> {
             TrademarkExportVO trademarkExportVO = new TrademarkExportVO();
             trademarkExportVO.setId(resultSet.getLong("id"));
+            trademarkExportVO.setCategory(resultSet.getLong("category"));
             trademarkExportVO.setOrgId(resultSet.getLong("org_id"));
             trademarkExportVO.setApplicant(resultSet.getString("applicant"));
             trademarkExportVO.setLegalPerson(resultSet.getString("legal_person"));

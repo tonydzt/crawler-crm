@@ -17,6 +17,13 @@
         </where>
     </select>
 
+    <select id="findAll" resultMap="resultMap" parameterType="int">
+        SELECT
+        id, name
+        FROM
+        employee
+    </select>
+
     <insert id="insert" parameterType="com.kasuo.crawler.domain.Employee" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO
             employee (name)

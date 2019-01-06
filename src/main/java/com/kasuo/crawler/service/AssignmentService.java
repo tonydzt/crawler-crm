@@ -71,7 +71,7 @@ public class AssignmentService {
 
         for (Map.Entry<String,Object> assignEntry : assignMap.entrySet()) {
             String name = assignEntry.getKey();
-            int num = (int) assignEntry.getValue();
+            int num =  Integer.parseInt(assignEntry.getValue() + "");
             Employee employee = employeeDao.findByName(name);
             List<TrademarkExportVO> dataList = new ArrayList<>();
             List<String> trademarkIds = new ArrayList<>();

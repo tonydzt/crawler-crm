@@ -2,6 +2,7 @@ package com.kasuo.crawler.controller;
 
 import com.kasuo.crawler.common.ErrorCode;
 import com.kasuo.crawler.common.Response;
+import com.kasuo.crawler.common.ResponseData;
 import com.kasuo.crawler.domain.Employee;
 import com.kasuo.crawler.service.EmployeeService;
 import org.slf4j.Logger;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -34,5 +36,10 @@ public class EmployeeController {
         employee.setName(name);
         employeeService.insert(employee);
         return ErrorCode.OK_EMPTY;
+    }
+
+    @RequestMapping(value = "/findAll", method = RequestMethod.GET)
+    public List<Employee> findAll() {
+        return employeeService.findAll();
     }
 }

@@ -5,6 +5,8 @@ import com.kasuo.crawler.domain.Employee;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * @author douzhitong
  * @date 2018/12/22
@@ -17,5 +19,9 @@ public class EmployeeService {
 
     public void insert(Employee employee) {
         employeeDao.insert(employee);
+    }
+
+    public List<Employee> findAll() {
+        return employeeDao.findAll();
     }
 }

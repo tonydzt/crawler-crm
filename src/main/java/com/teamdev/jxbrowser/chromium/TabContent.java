@@ -5,8 +5,6 @@ import com.teamdev.jxbrowser.chromium.events.LoadAdapter;
 import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
 import java.awt.BorderLayout;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
@@ -26,7 +24,7 @@ public class TabContent extends JPanel {
     private final JComponent container;
     private String type;
 
-    public TabContent(BrowserView browserView, String type) {
+    TabContent(BrowserView browserView, String type, TabFactory tabFactory) {
         this.type = type;
         this.browserView = browserView;
         this.browserView.getBrowser().addLoadListener(new LoadAdapter() {
@@ -37,14 +35,14 @@ public class TabContent extends JPanel {
                         firePropertyChange("PageTitleChanged", null, browserView.getBrowser().getTitle());
                     }
                 } catch (Throwable ee) {
-                    TabContent.logger.error("", ee);
+                    logger.error("", ee);
                 }
 
             }
         });
         browserContainer = createBrowserContainer();
         jsConsole = createConsole();
-        toolBar = createToolBar(browserView, type);
+        toolBar = createToolBar(browserView, type, tabFactory);
 
         container = new JPanel(new BorderLayout());
         container.add(browserContainer, "Center");
@@ -54,62 +52,27 @@ public class TabContent extends JPanel {
         add(container, "Center");
     }
 
-    private void changeBrowser(BrowserView browserView) {
-        try {
-            container.removeAll();
-
-            this.browserView = browserView;
-            this.browserView.getBrowser().addLoadListener(new LoadAdapter() {
-                @Override
-                public void onFinishLoadingFrame(FinishLoadingEvent event) {
-                    if (event.isMainFrame()) {
-                        firePropertyChange("PageTitleChanged", null, browserView.getBrowser().getTitle());
-
-                    }
-
-
-                }
-
-
-            });
-            browserContainer = createBrowserContainer();
-            container.add(browserContainer, "Center");
-            validate();
-        } catch (Throwable ee) {
-            logger.error("", ee);
-        }
-    }
-
-    private ToolBar createToolBar(BrowserView browserView, String type) {
-        ToolBar toolBar = new ToolBar(browserView, type);
-        toolBar.addPropertyChangeListener("TabClosed", new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                try {
-                    firePropertyChange("TabClosed", false, true);
-                } catch (Throwable ee) {
-                    TabContent.logger.error("", ee);
-                }
+    private ToolBar createToolBar(BrowserView browserView, String type, TabFactory tabFactory) {
+        ToolBar toolBar = new ToolBar(browserView, type, tabFactory);
+        toolBar.addPropertyChangeListener("TabClosed", evt -> {
+            try {
+                firePropertyChange("TabClosed", false, true);
+            } catch (Throwable ee) {
+                logger.error("", ee);
             }
         });
-        toolBar.addPropertyChangeListener("JSConsoleDisplayed", new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                try {
-                    TabContent.this.showConsole();
-                } catch (Throwable ee) {
-                    TabContent.logger.error("", ee);
-                }
+        toolBar.addPropertyChangeListener("JSConsoleDisplayed", evt -> {
+            try {
+                showConsole();
+            } catch (Throwable ee) {
+                logger.error("", ee);
             }
         });
-        toolBar.addPropertyChangeListener("JSConsoleClosed", new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                try {
-                    TabContent.this.hideConsole();
-                } catch (Throwable ee) {
-                    TabContent.logger.error("", ee);
-                }
+        toolBar.addPropertyChangeListener("JSConsoleClosed", evt -> {
+            try {
+                hideConsole();
+            } catch (Throwable ee) {
+                logger.error("", ee);
             }
         });
         return toolBar;
@@ -131,7 +94,7 @@ public class TabContent extends JPanel {
 
     private void showConsole() {
         try {
-            JSplitPane splitPane = new JSplitPane(0);
+            JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
             splitPane.add(browserContainer, "top");
             splitPane.add(jsConsole, "bottom");
             splitPane.setResizeWeight(0.8D);
@@ -145,12 +108,9 @@ public class TabContent extends JPanel {
     private JComponent createConsole() {
         try {
             JSConsole result = new JSConsole(browserView.getBrowser());
-            result.addPropertyChangeListener("JSConsoleClosed", new PropertyChangeListener() {
-                @Override
-                public void propertyChange(PropertyChangeEvent evt) {
-                    TabContent.this.hideConsole();
-                    toolBar.didJSConsoleClose();
-                }
+            result.addPropertyChangeListener("JSConsoleClosed", evt -> {
+                hideConsole();
+                toolBar.didJSConsoleClose();
             });
             return result;
         } catch (Throwable ee) {

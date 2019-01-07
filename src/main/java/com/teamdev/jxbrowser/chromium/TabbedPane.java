@@ -13,7 +13,6 @@ import javax.swing.SwingUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class TabbedPane
         extends JPanel {
     private static final Logger logger = LoggerFactory.getLogger(JPanel.class);
@@ -21,7 +20,7 @@ public class TabbedPane
     private final TabCaptions captions;
     private final JComponent contentContainer;
 
-    public TabbedPane() {
+    TabbedPane() {
         captions = new TabCaptions();
         tabs = new ArrayList();
         contentContainer = new JPanel(new BorderLayout());
@@ -29,19 +28,6 @@ public class TabbedPane
         setLayout(new BorderLayout());
         add(captions, "North");
         add(contentContainer, "Center");
-    }
-
-    public List<Browser> getBrowsers() {
-        try {
-            List<Browser> list = new ArrayList();
-            for (Tab tab : tabs) {
-                list.add(tab.getContent().getBrowserView().getBrowser());
-            }
-            return list;
-        } catch (Throwable ee) {
-            logger.error("", ee);
-        }
-        return null;
     }
 
     public void disposeAllTabs() {
@@ -53,7 +39,7 @@ public class TabbedPane
     public synchronized void disposeAllNotHomeTabs() {
         for (Tab tab : getTabs()) {
             String type = tab.getContent().getType();
-            if ((type == null) || (!type.equals("Home"))) {
+            if ((type == null) || (!"Home".equals(type))) {
                 disposeTab(tab);
             }
         }
@@ -75,31 +61,6 @@ public class TabbedPane
                     window.dispose();
                 }
             }
-        } catch (Throwable ee) {
-            logger.error("", ee);
-        }
-    }
-
-    public void disposeTab(Browser browser) {
-        try {
-            logger.warn("disposeTab: browser.hashCode=" + browser.hashCode() + "," + browser);
-            boolean found = false;
-            for (Tab tab : tabs) {
-                Browser browserTab = tab.getContent().getBrowserView().getBrowser();
-                logger.debug("browserTab.hashCode=" + browserTab.hashCode() + "," + browser);
-                if (browserTab == browser) {
-                    disposeTab(tab);
-                    found = true;
-                    logger.info("disposeTab: FOUND the browser tab and close it");
-                    break;
-                }
-            }
-
-            if (!found) {
-                logger.error("disposeTab: NOT FOUND the browser tab! try to close all tab");
-            }
-
-
         } catch (Throwable ee) {
             logger.error("", ee);
         }
@@ -144,7 +105,7 @@ public class TabbedPane
     private Tab getFirstTab() {
         try {
             if ((tabs != null) && (tabs.size() > 0)) {
-                return (Tab) tabs.get(0);
+                return tabs.get(0);
             }
             return null;
         } catch (Throwable ee) {
@@ -157,7 +118,7 @@ public class TabbedPane
         return new ArrayList(tabs);
     }
 
-    public void removeTab(Tab tab) {
+    private void removeTab(Tab tab) {
         try {
             TabCaption tabCaption = tab.getCaption();
             captions.removeTab(tabCaption);
@@ -167,10 +128,6 @@ public class TabbedPane
         } catch (Throwable ee) {
             logger.error("", ee);
         }
-    }
-
-    public void addTabButton(TabButton button) {
-        captions.addTabButton(button);
     }
 
     public void selectTab(Tab tab) {

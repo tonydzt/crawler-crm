@@ -4,7 +4,7 @@ public class Tab {
     private final TabCaption caption;
     private final TabContent content;
 
-    public Tab(TabCaption caption, TabContent content) {
+    Tab(TabCaption caption, TabContent content) {
         this.caption = caption;
         this.content = content;
     }

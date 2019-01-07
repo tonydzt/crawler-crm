@@ -5,8 +5,7 @@ import javax.swing.Icon;
 import javax.swing.JButton;
 
 
-public class TabButton
-        extends JButton {
+public class TabButton extends JButton {
     public TabButton(Icon icon, String toolTipText) {
         setIcon(icon);
         setToolTipText(toolTipText);

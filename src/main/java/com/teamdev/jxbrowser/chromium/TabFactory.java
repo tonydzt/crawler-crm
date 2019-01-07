@@ -1,7 +1,6 @@
 package com.teamdev.jxbrowser.chromium;
 
 import com.kasuo.crawler.service.AbstractCrawlerService;
-import com.kasuo.crawler.service.CrawlerOrgTYCService;
 import com.teamdev.jxbrowser.chromium.events.DisposeListener;
 import com.teamdev.jxbrowser.chromium.events.FailLoadingEvent;
 import com.teamdev.jxbrowser.chromium.events.FinishLoadingEvent;
@@ -17,20 +16,30 @@ import java.util.Map;
 import java.util.Map.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Service;
 
+@Service
+@Scope("prototype")
 public final class TabFactory {
     private static final Logger logger = LoggerFactory.getLogger(TabFactory.class);
 
-    public static TabbedPane tabbedPane = null;
-    public static AbstractCrawlerService crawlerOrgService = null;
-    public static BrowserContext browserContext = null;
-    public static Browser browserHome = null;
-    public static Browser browserSearch = null;
+    public TabbedPane tabbedPane = null;
+
+    @Qualifier("crawlerOrgTYCService")
+    @Autowired
+    public AbstractCrawlerService crawlerOrgService;
+    public BrowserContext browserContext = null;
+    public Browser browserHome = null;
+    public Browser browserSearch = null;
 
     public TabFactory() {
     }
 
-    public static Tab createHomeTab() {
+    public Tab createHomeTab() {
+        crawlerOrgService.setTabFactory(this);
         logger.info("ChromiumVariables...");
         Map<String, String> chromiumVariables = BrowserPreferences.getChromiumVariables();
         for (Entry<String, String> entry : chromiumVariables.entrySet()) {
@@ -79,7 +88,7 @@ public final class TabFactory {
         logger.debug("jxBrowser storageType: " + (browserHome.getContext().getStorageType().compareTo(StorageType.DISK) == 0 ? "DISK" : "MEMORY"));
 
         BrowserView browserView = new BrowserView(browserHome);
-        TabContent tabContent = new TabContent(browserView, "Home");
+        TabContent tabContent = new TabContent(browserView, "Home", this);
         TabCaption tabCaption = new TabCaption();
         tabCaption.setTitle("about:blank");
         tabContent.addPropertyChangeListener("PageTitleChanged", evt -> tabCaption.setTitle((String) evt.getNewValue()));
@@ -87,55 +96,53 @@ public final class TabFactory {
         browserHome.setDialogHandler(new DefaultDialogHandler(browserView));
         browserHome.setPopupHandler(new DefaultPopupHandler());
 
-        crawlerOrgService = CrawlerOrgTYCService.getInstance();
-
         browserHome.addRenderListener(new RenderAdapter() {
             @Override
             public void onRenderCreated(RenderEvent event) {
-                TabFactory.logger.info("Chromium Home render process is created.");
+                logger.info("Chromium Home render process is created.");
             }
 
             @Override
             public void onRenderGone(RenderEvent event) {
                 try {
-                    TabFactory.logger.warn("Chromium Home render process is gone: terminationStatus=" + event.getTerminationStatus());
+                    logger.warn("Chromium Home render process is gone: terminationStatus=" + event.getTerminationStatus());
 
-                    TabFactory.crawlerOrgService.sendNotice("9");
+                    crawlerOrgService.sendNotice("9");
 
-                    TabFactory.logger.info("Chromium Home render process is gone: 关闭tab");
-                    TabFactory.tabbedPane.disposeAllTabs();
+                    logger.info("Chromium Home render process is gone: 关闭tab");
+                    tabbedPane.disposeAllTabs();
 
                     Thread.sleep(5000L);
-                    TabFactory.crawlerOrgService.resetFetchStatus(event.getBrowser(), "Home浏览器停止运行");
+                    crawlerOrgService.resetFetchStatus(event.getBrowser(), "Home浏览器停止运行");
 
                     Thread.sleep(5000L);
                     System.exit(-1);
                 } catch (Throwable e) {
-                    TabFactory.logger.error("Home onRenderGone error!", e);
+                    logger.error("Home onRenderGone error!", e);
                 }
 
             }
 
         });
         browserHome.addDisposeListener((DisposeListener) event -> {
-            TabFactory.logger.warn("Home browser disposed! ");
-            TabFactory.browserHome = null;
-            TabFactory.crawlerOrgService.resetFetchStatus(null, "浏览器停止运行");
+            logger.warn("Home browser disposed! ");
+            browserHome = null;
+            crawlerOrgService.resetFetchStatus(null, "浏览器停止运行");
         });
         browserHome.addLoadListener(new LoadAdapter() {
             @Override
             public void onStartLoadingFrame(StartLoadingEvent event) {
-                TabFactory.startLoadingFrameHandler(event, "Home");
+                startLoadingFrameHandler(event, "Home");
             }
 
             @Override
             public void onFailLoadingFrame(FailLoadingEvent event) {
-                TabFactory.failLoadingFrameHandler(event, "Home");
+                failLoadingFrameHandler(event, "Home");
             }
 
             @Override
             public void onFinishLoadingFrame(FinishLoadingEvent event) {
-                TabFactory.finishLoadingFrameHandler(event, "Home");
+                finishLoadingFrameHandler(event, "Home");
 
             }
         });
@@ -144,12 +151,12 @@ public final class TabFactory {
         return new Tab(tabCaption, tabContent);
     }
 
-    public static synchronized void createSearchTab() {
+    public synchronized void createSearchTab() {
         browserSearch = new Browser(browserContext);
         logger.info("createTab: Search renderProcess pid=" + browserSearch.getRenderProcessInfo().getPID());
 
         BrowserView browserView = new BrowserView(browserSearch);
-        TabContent tabContent = new TabContent(browserView, "Search");
+        TabContent tabContent = new TabContent(browserView, "Search", this);
         TabCaption tabCaption = new TabCaption();
         tabCaption.setTitle("about:blank");
         tabContent.addPropertyChangeListener("PageTitleChanged", evt -> tabCaption.setTitle((String) evt.getNewValue()));
@@ -161,43 +168,43 @@ public final class TabFactory {
         browserSearch.addRenderListener(new RenderAdapter() {
             @Override
             public void onRenderCreated(RenderEvent event) {
-                TabFactory.logger.info("Chromium Search render process is created.");
+                logger.info("Chromium Search render process is created.");
             }
 
             @Override
             public void onRenderGone(RenderEvent event) {
                 try {
-                    TabFactory.logger.warn("Chromium Search render process is gone: terminationStatus=" + event.getTerminationStatus());
+                    logger.warn("Chromium Search render process is gone: terminationStatus=" + event.getTerminationStatus());
 
-                    TabFactory.crawlerOrgService.sendNotice("9");
+                    crawlerOrgService.sendNotice("9");
                     Thread.sleep(5000L);
 
-                    TabFactory.rebootFetchData(event.getBrowser());
+                    rebootFetchData(event.getBrowser());
                 } catch (Throwable e) {
-                    TabFactory.logger.error("Search onRenderGone error!", e);
+                    logger.error("Search onRenderGone error!", e);
                 }
 
             }
 
         });
         browserSearch.addDisposeListener((DisposeListener) event -> {
-            TabFactory.logger.warn("Search browser disposed!");
-            TabFactory.rebootFetchData((Browser) event.getSource());
+            logger.warn("Search browser disposed!");
+            rebootFetchData((Browser) event.getSource());
         });
         browserSearch.addLoadListener(new LoadAdapter() {
             @Override
             public void onStartLoadingFrame(StartLoadingEvent event) {
-                TabFactory.startLoadingFrameHandler(event, "Search");
+                startLoadingFrameHandler(event, "Search");
             }
 
             @Override
             public void onFailLoadingFrame(FailLoadingEvent event) {
-                TabFactory.failLoadingFrameHandler(event, "Search");
+                failLoadingFrameHandler(event, "Search");
             }
 
             @Override
             public void onFinishLoadingFrame(FinishLoadingEvent event) {
-                TabFactory.finishLoadingFrameHandler(event, "Search");
+                finishLoadingFrameHandler(event, "Search");
 
             }
         });
@@ -206,7 +213,7 @@ public final class TabFactory {
         tabbedPane.selectTab("Home");
     }
 
-    private static void startLoadingFrameHandler(StartLoadingEvent event, String browserType) {
+    private void startLoadingFrameHandler(StartLoadingEvent event, String browserType) {
         if (event.isMainFrame()) {
             Browser browser = event.getBrowser();
             crawlerOrgService.recordBeginLoadingTimes(browser);
@@ -216,7 +223,7 @@ public final class TabFactory {
         }
     }
 
-    private static void failLoadingFrameHandler(FailLoadingEvent event, String browserType) {
+    private void failLoadingFrameHandler(FailLoadingEvent event, String browserType) {
         Browser browser = event.getBrowser();
         crawlerOrgService.recordEndLoadingTimes(browser);
         logger.error("************* tab " + browserType + " " + crawlerOrgService.pageType(browser) + " onFailLoadingFrame! errorCode=" + event.getErrorCode() + "," + event.getErrorDescription() + ",uses time: " + crawlerOrgService.calcLoadingTimes(browser) + " ms");
@@ -225,7 +232,7 @@ public final class TabFactory {
         crawlerOrgService.handleFailLoadingFrame(event);
     }
 
-    private static void finishLoadingFrameHandler(FinishLoadingEvent event, String browserType) {
+    private void finishLoadingFrameHandler(FinishLoadingEvent event, String browserType) {
         try {
             if (event.isMainFrame()) {
                 Browser browser = event.getBrowser();
@@ -248,7 +255,7 @@ public final class TabFactory {
         }
     }
 
-    private static void rebootFetchData(Browser browser) {
+    private void rebootFetchData(Browser browser) {
         try {
             logger.info("关闭tab");
             browserSearch = null;
@@ -274,15 +281,15 @@ public final class TabFactory {
         }
     }
 
-    public static void selectTab(Browser browser) {
+    public void selectTab(Browser browser) {
         tabbedPane.selectTab(browser);
     }
 
-    public static void selectTab(String type) {
+    public void selectTab(String type) {
         tabbedPane.selectTab(type);
     }
 
-    public static synchronized boolean hasTab(String browserType) {
+    public synchronized boolean hasTab(String browserType) {
         for (Tab tab : tabbedPane.getTabs()) {
             if (tab.getContent().getType().equals(browserType)) {
                 return true;

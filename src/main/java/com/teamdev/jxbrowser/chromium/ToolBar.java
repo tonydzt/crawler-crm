@@ -16,7 +16,6 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
@@ -46,18 +45,19 @@ import org.slf4j.LoggerFactory;
 import static jdk.nashorn.internal.objects.NativeFunction.call;
 
 
-public class ToolBar
-        extends JPanel {
+public class ToolBar extends JPanel {
     private static final Logger logger = LoggerFactory.getLogger(AbstractCrawlerService.class);
 
     private JButton refreshButton;
     private JButton stopButton;
     private JMenuItem consoleMenuItem;
+    private TabFactory tabFactory;
     private final JTextField addressBar;
     private final BrowserView browserView;
 
-    public ToolBar(BrowserView browserView, String type) {
+    ToolBar(BrowserView browserView, String type, TabFactory tabFactory) {
         this.browserView = browserView;
+        this.tabFactory = tabFactory;
         addressBar = createAddressBar();
         setLayout(new GridBagLayout());
         add(createActionsPane(), new GridBagConstraints(0, 0, 1, 1, 0.0D, 0.0D, 17, 0, new Insets(0, 0, 0, 0), 0, 0));
@@ -88,32 +88,26 @@ public class ToolBar
     private JTextField createAddressBar() {
         try {
             final JTextField result = new JTextField("about:blank");
-            result.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    try {
-                        browserView.getBrowser().loadURL(result.getText());
-                    } catch (Throwable ee) {
-                        ToolBar.logger.error("", ee);
-                    }
-
+            result.addActionListener(e -> {
+                try {
+                    browserView.getBrowser().loadURL(result.getText());
+                } catch (Throwable ee) {
+                    logger.error("", ee);
                 }
+
             });
             browserView.getBrowser().addLoadListener(new LoadAdapter() {
                 @Override
                 public void onStartLoadingFrame(StartLoadingEvent event) {
                     try {
                         if (event.isMainFrame()) {
-                            SwingUtilities.invokeLater(new Runnable() {
-                                @Override
-                                public void run() {
-                                    refreshButton.setEnabled(false);
-                                    stopButton.setEnabled(true);
-                                }
+                            SwingUtilities.invokeLater(() -> {
+                                refreshButton.setEnabled(false);
+                                stopButton.setEnabled(true);
                             });
                         }
                     } catch (Throwable ee) {
-                        ToolBar.logger.error("", ee);
+                        logger.error("", ee);
                     }
                 }
 
@@ -121,16 +115,13 @@ public class ToolBar
                 public void onProvisionalLoadingFrame(final ProvisionalLoadingEvent event) {
                     try {
                         if (event.isMainFrame()) {
-                            SwingUtilities.invokeLater(new Runnable() {
-                                @Override
-                                public void run() {
-                                    result.setText(event.getURL());
-                                    result.setCaretPosition(result.getText().length());
-                                }
+                            SwingUtilities.invokeLater(() -> {
+                                result.setText(event.getURL());
+                                result.setCaretPosition(result.getText().length());
                             });
                         }
                     } catch (Throwable ee) {
-                        ToolBar.logger.error("", ee);
+                        logger.error("", ee);
                     }
                 }
 
@@ -149,7 +140,7 @@ public class ToolBar
 
                     } catch (Throwable ee) {
 
-                        ToolBar.logger.error("", ee);
+                        logger.error("", ee);
                     }
                 }
             });
@@ -160,7 +151,7 @@ public class ToolBar
         return null;
     }
 
-    private static JButton createRefreshButton(Browser browser) {
+    private JButton createRefreshButton(Browser browser) {
         return createButton("Refresh", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -173,7 +164,7 @@ public class ToolBar
         });
     }
 
-    private static JButton createStopButton(Browser browser) {
+    private JButton createStopButton(Browser browser) {
         return createButton("Stop", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -186,7 +177,7 @@ public class ToolBar
         });
     }
 
-    private static JButton createButton(String caption, Action action) {
+    private JButton createButton(String caption, Action action) {
         ActionButton button = new ActionButton(caption, action);
         String imageName = caption.toLowerCase();
         button.setIcon(Resources.getIcon("META-INF/" + imageName + ".png"));
@@ -197,7 +188,7 @@ public class ToolBar
     private JComponent createMenuButton(String type) {
         final JPopupMenu popupMenu = new JPopupMenu();
 
-        if (type.equals("Home")) {
+        if ("Home".equals(type)) {
             JMenuItem menuItem = createFetchDataMenuItem(type);
             if (menuItem != null) {
                 popupMenu.add(menuItem);
@@ -206,7 +197,7 @@ public class ToolBar
             popupMenu.add(createRefreshPropertiesMenuItem());
 
             String production = CrmProperties.getProperty("production");
-            if (production.equals("false")) {
+            if ("false".equals(production)) {
                 menuItem = createDebugFetchDataMenuItem(type);
                 if (menuItem != null) {
                     popupMenu.add(menuItem);
@@ -240,56 +231,30 @@ public class ToolBar
 
     private Component createRefreshPropertiesMenuItem() {
         JMenuItem menuItem = new JMenuItem("刷新配置参数");
-        menuItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                CrmProperties.refresh();
-            }
-
-        });
-        return menuItem;
-    }
-
-    private Component createClearCountMenuItem(String type) {
-        JMenuItem menuItem = new JMenuItem("清除统计数据");
-        menuItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-            }
-
-        });
+        menuItem.addActionListener(e -> CrmProperties.refresh());
         return menuItem;
     }
 
     private Component createPreferencesSubMenu() {
         JMenu menu = new JMenu("Preferences");
         BrowserPreferences preferences = browserView.getBrowser().getPreferences();
-        menu.add(createCheckBoxMenuItem("JavaScript Enabled", preferences.isJavaScriptEnabled(), new CheckBoxMenuItemCallback() {
-            @Override
-            public void call(boolean selected) {
-                BrowserPreferences preferences = browserView.getBrowser().getPreferences();
-                preferences.setJavaScriptEnabled(selected);
-                browserView.getBrowser().setPreferences(preferences);
-                browserView.getBrowser().reloadIgnoringCache();
-            }
+        menu.add(createCheckBoxMenuItem("JavaScript Enabled", preferences.isJavaScriptEnabled(), selected -> {
+            BrowserPreferences preferences12 = browserView.getBrowser().getPreferences();
+            preferences12.setJavaScriptEnabled(selected);
+            browserView.getBrowser().setPreferences(preferences12);
+            browserView.getBrowser().reloadIgnoringCache();
         }));
-        menu.add(createCheckBoxMenuItem("Images Enabled", preferences.isImagesEnabled(), new CheckBoxMenuItemCallback() {
-            @Override
-            public void call(boolean selected) {
-                BrowserPreferences preferences = browserView.getBrowser().getPreferences();
-                preferences.setImagesEnabled(selected);
-                browserView.getBrowser().setPreferences(preferences);
-                browserView.getBrowser().reloadIgnoringCache();
-            }
+        menu.add(createCheckBoxMenuItem("Images Enabled", preferences.isImagesEnabled(), selected -> {
+            BrowserPreferences preferences13 = browserView.getBrowser().getPreferences();
+            preferences13.setImagesEnabled(selected);
+            browserView.getBrowser().setPreferences(preferences13);
+            browserView.getBrowser().reloadIgnoringCache();
         }));
-        menu.add(createCheckBoxMenuItem("Plugins Enabled", preferences.isPluginsEnabled(), new CheckBoxMenuItemCallback() {
-            @Override
-            public void call(boolean selected) {
-                BrowserPreferences preferences = browserView.getBrowser().getPreferences();
-                preferences.setPluginsEnabled(selected);
-                browserView.getBrowser().setPreferences(preferences);
-                browserView.getBrowser().reloadIgnoringCache();
-            }
+        menu.add(createCheckBoxMenuItem("Plugins Enabled", preferences.isPluginsEnabled(), selected -> {
+            BrowserPreferences preferences14 = browserView.getBrowser().getPreferences();
+            preferences14.setPluginsEnabled(selected);
+            browserView.getBrowser().setPreferences(preferences14);
+            browserView.getBrowser().reloadIgnoringCache();
         }));
         menu.add(createCheckBoxMenuItem("JavaScript Can Access Clipboard", preferences.isJavaScriptCanAccessClipboard(), new CheckBoxMenuItemCallback() {
             @Override
@@ -309,41 +274,29 @@ public class ToolBar
                 browserView.getBrowser().reloadIgnoringCache();
             }
         }));
-        menu.add(createCheckBoxMenuItem("Web Audio Enabled", preferences.isWebAudioEnabled(), new CheckBoxMenuItemCallback() {
-            @Override
-            public void call(boolean selected) {
-                BrowserPreferences preferences = browserView.getBrowser().getPreferences();
-                preferences.setWebAudioEnabled(selected);
-                browserView.getBrowser().setPreferences(preferences);
-                browserView.getBrowser().reloadIgnoringCache();
-            }
+        menu.add(createCheckBoxMenuItem("Web Audio Enabled", preferences.isWebAudioEnabled(), selected -> {
+            BrowserPreferences preferences1 = browserView.getBrowser().getPreferences();
+            preferences1.setWebAudioEnabled(selected);
+            browserView.getBrowser().setPreferences(preferences1);
+            browserView.getBrowser().reloadIgnoringCache();
         }));
         return menu;
     }
 
-    private static JCheckBoxMenuItem createCheckBoxMenuItem(String title, boolean selected, CheckBoxMenuItemCallback action) {
+    private JCheckBoxMenuItem createCheckBoxMenuItem(String title, boolean selected, CheckBoxMenuItemCallback action) {
         final JCheckBoxMenuItem menuItem = new JCheckBoxMenuItem(title, selected);
-        menuItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                call(menuItem.isSelected());
-            }
-        });
+        menuItem.addActionListener(e -> call(menuItem.isSelected()));
         return menuItem;
     }
 
     private Component createClearCacheMenuItem() {
         JMenuItem menuItem = new JMenuItem("Clear Cache");
-        menuItem.addActionListener(new ActionListener() {
+        menuItem.addActionListener(e -> browserView.getBrowser().getCacheStorage().clearCache(new Callback() {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                browserView.getBrowser().getCacheStorage().clearCache(new Callback() {
-                    public void invoke() {
-                        JOptionPane.showMessageDialog(browserView, "Cache is cleared successfully.", "Clear Cache", 1);
-                    }
-                });
+            public void invoke() {
+                JOptionPane.showMessageDialog(browserView, "Cache is cleared successfully.", "Clear Cache", JOptionPane.INFORMATION_MESSAGE);
             }
-        });
+        }));
         return menuItem;
     }
 
@@ -389,7 +342,7 @@ public class ToolBar
     private Component createExecuteCommandSubMenuItem(String commandName, final String dialogTitle, final EditorCommand command) {
         CommandMenuItem menuItem = new CommandMenuItem(commandName, command);
         menuItem.addActionListener(e -> {
-            String value = JOptionPane.showInputDialog(browserView, "Command value:", dialogTitle, -1);
+            String value = JOptionPane.showInputDialog(browserView, "Command value:", dialogTitle, JOptionPane.PLAIN_MESSAGE);
             browserView.getBrowser().executeCommand(command, value);
         });
         return menuItem;
@@ -408,7 +361,7 @@ public class ToolBar
                     browserView.getBrowser().saveWebPage(selectedFile.getAbsolutePath(), dirPath, SavePageType.COMPLETE_HTML);
                 }
             } catch (Throwable ee) {
-                ToolBar.logger.error("", ee);
+                logger.error("", ee);
             }
         });
         return menuItem;
@@ -433,7 +386,7 @@ public class ToolBar
                 dialog.setLocationRelativeTo(null);
                 dialog.setVisible(true);
             } catch (Throwable ee) {
-                ToolBar.logger.error("", ee);
+                logger.error("", ee);
             }
         });
         return menuItem;
@@ -446,29 +399,29 @@ public class ToolBar
 
         menuItem.addActionListener(e -> {
             try {
-                if ((TabFactory.crawlerOrgService == null) || (TabFactory.browserHome == null)) {
-                    ToolBar.logger.error("crawler NOT FOUND crawlerOrgService browserHome instance!");
+                if ((tabFactory.crawlerOrgService == null) || (tabFactory.browserHome == null)) {
+                    logger.error("crawler NOT FOUND crawlerOrgService browserHome instance!");
                     JOptionPane.showMessageDialog(null, "出现异常，请关闭应用，重新启动！", " 错误提示", 0);
                     return;
                 }
-                if (!TabFactory.hasTab("Search")) {
-                    TabFactory.createSearchTab();
+                if (!tabFactory.hasTab("Search")) {
+                    tabFactory.createSearchTab();
                 }
 
                 JMenuItem menuItem1 = (JMenuItem) e.getSource();
-                if (TabFactory.crawlerOrgService.getFetchDataStatus()) {
+                if (tabFactory.crawlerOrgService.getFetchDataStatus()) {
                     menuItem1.setText("启动抓取...");
-                    ToolBar.logger.info("手工停止抓取...");
-                    TabFactory.crawlerOrgService.setFetchDataStatus();
+                    logger.info("手工停止抓取...");
+                    tabFactory.crawlerOrgService.setFetchDataStatus();
                 } else {
                     menuItem1.setText("停止抓取...");
-                    ToolBar.logger.info("手工启动抓取...");
-                    TabFactory.crawlerOrgService.setFetchDataStatus();
-                    TabFactory.crawlerOrgService.startFetch(TabFactory.browserSearch);
+                    logger.info("手工启动抓取...");
+                    tabFactory.crawlerOrgService.setFetchDataStatus();
+                    tabFactory.crawlerOrgService.startFetch(tabFactory.browserSearch);
                 }
-                TabFactory.crawlerOrgService.showDebugInfo();
+                tabFactory.crawlerOrgService.showDebugInfo();
             } catch (Throwable ee) {
-                ToolBar.logger.error("", ee);
+                logger.error("", ee);
             }
         });
         return menuItem;
@@ -484,21 +437,21 @@ public class ToolBar
             try {
                 Browser browser = browserView.getBrowser();
                 JMenuItem menuItem1 = (JMenuItem) e.getSource();
-                if (TabFactory.crawlerOrgService.getFetchDataStatus()) {
+                if (tabFactory.crawlerOrgService.getFetchDataStatus()) {
                     menuItem1.setText("启动抓取DEBUG");
-                    ToolBar.logger.info("手工停止抓取DEBUG...");
-                    TabFactory.crawlerOrgService.setFetchDataStatus();
-                    TabFactory.crawlerOrgService.setFetchDataTestStatus();
+                    logger.info("手工停止抓取DEBUG...");
+                    tabFactory.crawlerOrgService.setFetchDataStatus();
+                    tabFactory.crawlerOrgService.setFetchDataTestStatus();
                 } else {
                     menuItem1.setText("停止抓取DEBUG");
-                    ToolBar.logger.info("手工启动抓取DEBUG...");
-                    TabFactory.crawlerOrgService.setFetchDataStatus();
-                    TabFactory.crawlerOrgService.setFetchDataTestStatus();
-                    TabFactory.crawlerOrgService.startFetch(browser);
+                    logger.info("手工启动抓取DEBUG...");
+                    tabFactory.crawlerOrgService.setFetchDataStatus();
+                    tabFactory.crawlerOrgService.setFetchDataTestStatus();
+                    tabFactory.crawlerOrgService.startFetch(browser);
                 }
-                TabFactory.crawlerOrgService.showDebugInfo();
+                tabFactory.crawlerOrgService.showDebugInfo();
             } catch (Throwable ee) {
-                ToolBar.logger.error("", ee);
+                logger.error("", ee);
             }
         });
         return menuItem;
@@ -520,7 +473,7 @@ public class ToolBar
 
     private boolean isFocusRequired() {
         String url = addressBar.getText();
-        return (url.isEmpty()) || (url.equals("about:blank"));
+        return (url.isEmpty()) || ("about:blank".equals(url));
     }
 
     @Override
@@ -548,7 +501,7 @@ public class ToolBar
         }
     }
 
-    private static abstract interface CheckBoxMenuItemCallback {
-        public abstract void call(boolean paramBoolean);
+    private interface CheckBoxMenuItemCallback {
+        void call(boolean paramBoolean);
     }
 }

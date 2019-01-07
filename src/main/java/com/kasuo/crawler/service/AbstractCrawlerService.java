@@ -1,7 +1,5 @@
 package com.kasuo.crawler.service;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.kasuo.crawler.dao.TrademarkDao;
 import com.kasuo.crawler.dao.mybatis.OrgDao;
 import com.kasuo.crawler.domain.SourceOrg;
@@ -29,20 +27,12 @@ import com.teamdev.jxbrowser.chromium.dom.DOMElement;
 import com.teamdev.jxbrowser.chromium.dom.DOMNode;
 import com.teamdev.jxbrowser.chromium.events.FailLoadingEvent;
 import com.teamdev.jxbrowser.chromium.events.FinishLoadingEvent;
-import org.apache.http.HttpEntity;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import javax.swing.*;
-import java.lang.reflect.Type;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -50,14 +40,13 @@ import java.util.stream.Collectors;
  * @author dzt
  */
 @Component
+@Scope("prototype")
 public abstract class AbstractCrawlerService {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractCrawlerService.class);
 
-    private static String serverSign = "U3xer0Xdz9Z2Ea";
     private static int crawlStartMinute = 40;
     private static int crawlEndMinute = 12;
-    private static String crawlerStartVerify = "1";
 
     public static JMenuItem menuItem = null;
     public static JMenuItem menuItem2 = null;
@@ -72,7 +61,6 @@ public abstract class AbstractCrawlerService {
     protected int crawlerMaxRecords = 100;
     protected int crawlerStartHour = 7;
     protected int crawlerEndHour = 23;
-    protected String serverIp = null;
 
     protected boolean fetchDataStatus = false;
     protected boolean fetchDataTestStatus = false;
@@ -114,8 +102,6 @@ public abstract class AbstractCrawlerService {
     protected Date verifyDataDate = null;
     protected String verifyDataResult = null;
 
-    protected int continuousSaveFailCount = 0;
-
     //页面超时次数，大于50次停机检查
     protected int continuousTimeoutCount = 0;
     protected int continuousFailCount = 0;
@@ -123,7 +109,6 @@ public abstract class AbstractCrawlerService {
     //页面解析错误次数，大于20次停机检查
     protected int continuousDomParseErrorCount = 0;
     protected int randWaitTimes = 0;
-    protected int remainWaitTimes = 0;
 
     protected long loadBeginTime = 0L;
     protected long loadEndTime = 0L;
@@ -134,9 +119,8 @@ public abstract class AbstractCrawlerService {
 
     protected Date lastDistNoFoundOrgDataDate = null;
 
-    protected static AbstractCrawlerService _instance;
-
     protected CheckVerifyCodeThread checkVerifyCodeThread = null;
+    protected TabFactory tabFactory;
 
     protected AbstractCrawlerService() {
         crawlerType = CrmProperties.getProperty("crawlerType");
@@ -149,10 +133,6 @@ public abstract class AbstractCrawlerService {
         crawlerMaxRecords = Integer.parseInt(CrmProperties.getProperty("crawlerMaxRecords"));
         crawlerStartHour = Integer.parseInt(CrmProperties.getProperty("crawlerStartHour"));
         crawlerEndHour = Integer.parseInt(CrmProperties.getProperty("crawlerEndHour"));
-        crawlerStartVerify = CrmProperties.getProperty("crawlerStartVerify");
-        if (crawlerStartVerify == null) {
-            crawlerStartVerify = "1";
-        }
     }
 
     public abstract String getLoginUrl();
@@ -649,14 +629,14 @@ public abstract class AbstractCrawlerService {
 
             boolean found;
             String newValue = "";
-            if (queryName.equals("北京中晶环境科技股份有限公司")) {
+            if ("北京中晶环境科技股份有限公司".equals(queryName)) {
 
 
                 found = false;
                 newValue = "";
                 for (OrgHisName hisName : org.getOldNames()) {
                     newValue = newValue + hisName.getOrgName() + ", ";
-                    if (hisName.getOrgName().equals("北京中晶环境科技股份有限公司")) {
+                    if ("北京中晶环境科技股份有限公司".equals(hisName.getOrgName())) {
                         found = true;
                         break;
                     }
@@ -685,7 +665,7 @@ public abstract class AbstractCrawlerService {
                 }
 
 
-            } else if (queryName.equals("上海世纪互联信息系统有限公司")) {
+            } else if ("上海世纪互联信息系统有限公司".equals(queryName)) {
                 found = false;
                 newValue = "";
                 for (Contact contact : org.getContacts()) {
@@ -707,7 +687,7 @@ public abstract class AbstractCrawlerService {
                 newValue = "";
                 for (Contact contact : org.getContacts()) {
                     newValue = newValue + contact.getEmail() + ", ";
-                    if ((contact.getEmail() != null) && (contact.getEmail().equalsIgnoreCase("gongh.jiaqi@21viacloud.com"))) {
+                    if ((contact.getEmail() != null) && ("gongh.jiaqi@21viacloud.com".equalsIgnoreCase(contact.getEmail()))) {
                         found = true;
                         break;
                     }
@@ -717,7 +697,7 @@ public abstract class AbstractCrawlerService {
                     logger.error("上海世纪互联信息系统有限公司: 邮箱不匹配！old=gongh.jiaqi@21viacloud.com,new=" + newValue);
                     return false;
                 }
-            } else if (queryName.equals("索菲亚管业科技(苏州)有限公司")) {
+            } else if ("索菲亚管业科技(苏州)有限公司".equals(queryName)) {
                 found = false;
                 newValue = "";
                 for (Contact contact : org.getContacts()) {
@@ -732,12 +712,12 @@ public abstract class AbstractCrawlerService {
                     logger.error("索菲亚管业科技(苏州)有限公司: 电话号码不匹配！old=051263820100,new=" + newValue);
                     return false;
                 }
-            } else if (queryName.equals("沙龙(香港)实业有限公司")) {
+            } else if ("沙龙(香港)实业有限公司".equals(queryName)) {
                 if (!org.getCrawlFlag().isNoFound()) {
                     logger.error("沙龙(香港)实业有限公司: 原来无记录，现在居然找到了！");
                     return false;
                 }
-            } else if (queryName.equals("北京耀胜体育产业股份有限公司")) {
+            } else if ("北京耀胜体育产业股份有限公司".equals(queryName)) {
                 found = false;
                 newValue = "";
                 for (Contact contact : org.getContacts()) {
@@ -757,7 +737,7 @@ public abstract class AbstractCrawlerService {
                 newValue = "";
                 for (Contact contact : org.getContacts()) {
                     newValue = newValue + contact.getEmail() + ", ";
-                    if ((contact.getEmail() != null) && (contact.getEmail().equalsIgnoreCase("767302192@qq.com"))) {
+                    if ((contact.getEmail() != null) && ("767302192@qq.com".equalsIgnoreCase(contact.getEmail()))) {
                         found = true;
                         break;
                     }
@@ -767,7 +747,7 @@ public abstract class AbstractCrawlerService {
                     logger.error("北京耀胜体育产业股份有限公司: 邮箱不匹配！old=767302192@qq.com,new=" + newValue);
                     return false;
                 }
-            } else if (queryName.equals("神州数码信息服务股份有限公司")) {
+            } else if ("神州数码信息服务股份有限公司".equals(queryName)) {
                 found = false;
                 newValue = "";
                 for (Contact contact : org.getContacts()) {
@@ -787,7 +767,7 @@ public abstract class AbstractCrawlerService {
                 newValue = "";
                 for (Contact contact : org.getContacts()) {
                     newValue = newValue + contact.getEmail() + ", ";
-                    if ((contact.getEmail() != null) && ((contact.getEmail().equalsIgnoreCase("tianyuanf@dcits.com")) || (contact.getEmail().equalsIgnoreCase("liwxi@dcits.com")))) {
+                    if ((contact.getEmail() != null) && (("tianyuanf@dcits.com".equalsIgnoreCase(contact.getEmail())) || ("liwxi@dcits.com".equalsIgnoreCase(contact.getEmail())))) {
                         found = true;
                         break;
                     }
@@ -885,7 +865,6 @@ public abstract class AbstractCrawlerService {
     /**
      * 判断是否在爬虫工作时间内
      * 目前的工作时间是7:40 ~ 23:12
-     * @param browser
      * @return 是否在爬虫工作时间内
      */
     private boolean isCrawlTime(Browser browser) {
@@ -963,10 +942,10 @@ public abstract class AbstractCrawlerService {
             }
             Calendar last = Calendar.getInstance();
             last.setTime(lastDistNoFoundOrgDataDate);
-            if ((now.get(1) == last.get(1)) && (now.get(2) == last.get(2)) && (now.get(5) == last.get(5))) {
+            if ((now.get(Calendar.YEAR) == last.get(Calendar.YEAR)) && (now.get(Calendar.MONTH) == last.get(Calendar.MONTH)) && (now.get(5) == last.get(5))) {
                 logger.debug("isKeepSessionTime: lastDistributeNoFoundDataDate is same DAY of now,lastDistributeNoFoundDataDate=" + DateTool.getStringDateTime(last.getTime()));
                 randNum = CodecTool.random(5, 3);
-                last.add(11, randNum);
+                last.add(Calendar.HOUR_OF_DAY, randNum);
                 logger.debug("isKeepSessionTime: lastDistributeNoFoundDataDate add " + randNum + " hours,is: " + DateTool.getStringDateTime(last.getTime()));
                 if (last.after(startTime) && last.before(endTime) && now.after(last)) {
                     lastDistNoFoundOrgDataDate = now.getTime();
@@ -1191,7 +1170,7 @@ public abstract class AbstractCrawlerService {
         verifyCodePrevReqNums = 1;
         verifyCodePrevTime = System.currentTimeMillis();
         showDebugInfoTodo("验证码");
-        TabFactory.selectTab(browser);
+        tabFactory.selectTab(browser);
         sendNotice("1", String.valueOf(verifyCodeNums));
     }
 
@@ -1227,7 +1206,7 @@ public abstract class AbstractCrawlerService {
     }
 
 
-    protected void handleErrorPage(Browser browser) {
+    private void handleErrorPage(Browser browser) {
         SourceOrg sourceOrg = getMySourceOrg(browser);
         if (sourceOrg != null) {
             Org org = sourceOrg.getOrg();
@@ -1252,7 +1231,7 @@ public abstract class AbstractCrawlerService {
 
     private void showDebugInfoTodo(String msg) {
         try {
-            Browser browser = TabFactory.browserHome;
+            Browser browser = tabFactory.browserHome;
             if (browser == null) {
                 return;
             }
@@ -1269,7 +1248,7 @@ public abstract class AbstractCrawlerService {
 
     private void clearDebugInfoTodo() {
         try {
-            Browser browser = TabFactory.browserHome;
+            Browser browser = tabFactory.browserHome;
             if (browser == null) {
                 return;
             }
@@ -1285,7 +1264,7 @@ public abstract class AbstractCrawlerService {
 
     private void createDebugInfo() {
         try {
-            Browser browser = TabFactory.browserHome;
+            Browser browser = tabFactory.browserHome;
             if (browser == null) {
                 return;
             }
@@ -1316,7 +1295,7 @@ public abstract class AbstractCrawlerService {
 
     public void showDebugInfo() {
         try {
-            Browser browser = TabFactory.browserHome;
+            Browser browser = tabFactory.browserHome;
             if (browser == null) {
                 return;
             }
@@ -1392,7 +1371,7 @@ public abstract class AbstractCrawlerService {
                 handleVerifyCodePage(browser);
                 return;
             }
-            TabFactory.selectTab("Home");
+            tabFactory.selectTab("Home");
 
 
             if (isErrorPage(browser)) {
@@ -1512,7 +1491,7 @@ public abstract class AbstractCrawlerService {
     }
 
 
-    protected static CurrencyType getCurrencyType(String capitalUnit) {
+    static CurrencyType getCurrencyType(String capitalUnit) {
         CurrencyType currencyType = null;
         if (capitalUnit.contains("人民币")) {
             currencyType = new CurrencyType("CNY");
@@ -1541,7 +1520,7 @@ public abstract class AbstractCrawlerService {
     }
 
 
-    protected static int getRegCapitalInt(String regCapital) {
+    static int getRegCapitalInt(String regCapital) {
         try {
             int iDecollator = regCapital.indexOf(".");
             if (iDecollator != -1) {
@@ -1555,7 +1534,7 @@ public abstract class AbstractCrawlerService {
         return 0;
     }
 
-    protected static String getWebUrl(String web) {
+    static String getWebUrl(String web) {
         try {
             if (web == null) {
                 return null;
@@ -1578,7 +1557,7 @@ public abstract class AbstractCrawlerService {
     }
 
 
-    protected static OrgType getOrgType(String orgType) {
+    static OrgType getOrgType(String orgType) {
         if ((orgType.contains("个体工商户")) || (orgType.contains("个体户"))) {
             return new OrgType("2");
         }
@@ -1768,7 +1747,7 @@ public abstract class AbstractCrawlerService {
 
             if (!foundMail) {
                 for (Contact c2 : oldList) {
-                    if ((c2.getEmail() == null) || (c2.getEmail().trim().equals(""))) {
+                    if ((c2.getEmail() == null) || ("".equals(c2.getEmail().trim()))) {
                         foundBlankMail = true;
                         c2.setEmail(c1.getEmail());
                         break;
@@ -1784,5 +1763,9 @@ public abstract class AbstractCrawlerService {
         oldList.addAll(addList);
 
         return oldList;
+    }
+
+    public void setTabFactory(TabFactory tabFactory) {
+        this.tabFactory = tabFactory;
     }
 }

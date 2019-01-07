@@ -5,8 +5,6 @@ import com.teamdev.jxbrowser.chromium.resources.Resources;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import javax.swing.BorderFactory;
@@ -19,14 +17,12 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
-public class JSConsole extends JPanel {
-  private static final String NEW_LINE = "\n";
-  private static final String QUERY_LINE_START = ">> ";
+class JSConsole extends JPanel {
   private JTextArea console;
   private final Browser browser;
   private final ExecutorService executor;
   
-  public JSConsole(Browser browser)
+  JSConsole(Browser browser)
   {
     this.browser = browser;
     executor = Executors.newCachedThreadPool();
@@ -45,23 +41,15 @@ public class JSConsole extends JPanel {
     
     final JTextField consoleInput = new JTextField();
     consoleInput.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
-    consoleInput.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        executor.submit(() -> {
-          final String script = consoleInput.getText();
-          JSValue jsValue = browser.executeJavaScriptAndReturnValue(script);
-          final String executionResult = jsValue.toString();
-          SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-              JSConsole.this.updateConsoleOutput(script, executionResult);
-              consoleInput.setText("");
-            }
-          });
-        });
-      }
-    });
+    consoleInput.addActionListener(e -> executor.submit(() -> {
+      final String script = consoleInput.getText();
+      JSValue jsValue = browser.executeJavaScriptAndReturnValue(script);
+      final String executionResult = jsValue.toString();
+      SwingUtilities.invokeLater(() -> {
+        JSConsole.this.updateConsoleOutput(script, executionResult);
+        consoleInput.setText("");
+      });
+    }));
     result.add(label, "West");
     result.add(consoleInput, "Center");
     return result;
@@ -69,7 +57,7 @@ public class JSConsole extends JPanel {
   
   private JComponent createConsoleOutput() {
     console = new JTextArea();
-    console.setFont(new Font("Consolas", 0, 12));
+    console.setFont(new Font("Consolas", Font.PLAIN, 12));
     console.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
     console.setEditable(false);
     console.setWrapStyleWord(true);
@@ -102,12 +90,7 @@ public class JSConsole extends JPanel {
     closeButton.setIcon(Resources.getIcon("META-INF/close.png"));
     closeButton.setContentAreaFilled(false);
     closeButton.setFocusable(false);
-    closeButton.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        firePropertyChange("JSConsoleClosed", false, true);
-      }
-    });
+    closeButton.addActionListener(e -> firePropertyChange("JSConsoleClosed", false, true));
     return closeButton;
   }
   

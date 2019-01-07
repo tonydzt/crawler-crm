@@ -1,6 +1,5 @@
 package com.teamdev.jxbrowser.chromium;
 
-import com.teamdev.jxbrowser.chromium.resources.Resources;
 import com.kasuo.crawler.service.AbstractCrawlerService;
 
 import java.awt.BorderLayout;
@@ -10,15 +9,12 @@ import java.awt.GradientPaint;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
-import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -28,8 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class TabCaption
-        extends JPanel {
+public class TabCaption extends JPanel {
     private static final Logger logger = LoggerFactory.getLogger(AbstractCrawlerService.class);
     private boolean selected;
     private TabCaptionComponent component;
@@ -140,48 +135,18 @@ public class TabCaption
             return label;
         }
 
-        private JComponent createCloseButton() {
-            try {
-                JButton closeButton = new JButton();
-                closeButton.setOpaque(false);
-                closeButton.setToolTipText("Close");
-                closeButton.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
-                closeButton.setPressedIcon(Resources.getIcon("META-INF/close-pressed.png"));
-                closeButton.setIcon(Resources.getIcon("META-INF/close.png"));
-                closeButton.setContentAreaFilled(false);
-                closeButton.setFocusable(false);
-                closeButton.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        try {
-                            firePropertyChange("CloseButtonPressed", false, true);
-                        } catch (Throwable ee) {
-                            TabCaption.logger.error("", ee);
-                        }
-                    }
-                });
-                return closeButton;
-            } catch (Throwable ee) {
-                TabCaption.logger.error("", ee);
-            }
-            return null;
-        }
-
-        public void setTitle(final String title) {
-            SwingUtilities.invokeLater(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        label.setText(title);
-                        label.setToolTipText(title);
-                    } catch (Throwable ee) {
-                        TabCaption.logger.error("", ee);
-                    }
+        void setTitle(final String title) {
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    label.setText(title);
+                    label.setToolTipText(title);
+                } catch (Throwable ee) {
+                    TabCaption.logger.error("", ee);
                 }
             });
         }
 
-        public void setSelected(boolean selected) {
+        void setSelected(boolean selected) {
             try {
                 setBackground(selected ? defaultBackground : new Color(150, 150, 150));
                 repaint();

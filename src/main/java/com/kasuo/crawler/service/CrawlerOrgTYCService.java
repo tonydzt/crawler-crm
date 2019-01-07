@@ -3,7 +3,6 @@ package com.kasuo.crawler.service;
 import com.alibaba.druid.util.StringUtils;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.kasuo.crawler.dao.TrademarkDao;
 import com.kasuo.crawler.domain.SourceOrg;
 import com.kasuo.crawler.domain.contact.Contact;
 import com.kasuo.crawler.domain.datadictionary.CurrencyType;
@@ -28,24 +27,17 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
 @Service
+@Scope("prototype")
 public class CrawlerOrgTYCService extends AbstractCrawlerService {
     private static final Logger logger = LoggerFactory.getLogger(CrawlerOrgTYCService.class);
 
-    protected String loginUrl = "https://www.tianyancha.com/login";
-    protected String homeUrl = "https://www.tianyancha.com";
+    private String homeUrl = "https://www.tianyancha.com";
 
     protected CrawlerOrgTYCService() {
-    }
-
-    public static AbstractCrawlerService getInstance() {
-        if (_instance == null) {
-            _instance = new CrawlerOrgTYCService();
-        }
-        return _instance;
     }
 
     @Override
@@ -56,55 +48,37 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
             return true;
         }
         String html = browser.getHTML();
-        if (html.contains("已达上限")) {
-            return true;
-        }
-        return false;
+        return html.contains("已达上限");
     }
 
     @Override
     protected boolean isHomePage(Browser browser) {
         String url = browser.getURL();
-        if ((url.equals("http://www.tianyancha.com/")) || (url.equals("http://www.tianyancha.com")) || (url.equals("https://www.tianyancha.com/")) || (url.equals("https://www.tianyancha.com"))) {
-            return true;
-        }
-        return false;
+        return "http://www.tianyancha.com/".equals(url) || "http://www.tianyancha.com".equals(url) || "https://www.tianyancha.com/".equals(url) || "https://www.tianyancha.com".equals(url);
     }
 
     @Override
     protected boolean isLoginPage(Browser browser) {
         String url = browser.getURL();
-        if ((url.startsWith("http://www.tianyancha.com/login")) || (url.startsWith("https://www.tianyancha.com/login"))) {
-            return true;
-        }
-        return false;
+        return url.startsWith("http://www.tianyancha.com/login") || url.startsWith("https://www.tianyancha.com/login");
     }
 
     @Override
     protected boolean isLoginIdentityPage(Browser browser) {
         String url = browser.getURL();
-        if (url.contains("www.tianyancha.com/auth/identity")) {
-            return true;
-        }
-        return false;
+        return url.contains("www.tianyancha.com/auth/identity");
     }
 
     @Override
     protected boolean isBasicPage(Browser browser) {
         String url = browser.getURL();
-        if ((url.startsWith("http://www.tianyancha.com/search?key=")) || (url.startsWith("https://www.tianyancha.com/search?key="))) {
-            return true;
-        }
-        return false;
+        return url.startsWith("http://www.tianyancha.com/search?key=") || url.startsWith("https://www.tianyancha.com/search?key=");
     }
 
     @Override
     protected boolean isDetailPage(Browser browser) {
         String url = browser.getURL();
-        if ((url.startsWith("http://www.tianyancha.com/company/")) || (url.startsWith("https://www.tianyancha.com/company/"))) {
-            return true;
-        }
-        return false;
+        return url.startsWith("http://www.tianyancha.com/company/") || url.startsWith("https://www.tianyancha.com/company/");
     }
 
 
@@ -136,7 +110,7 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
         DOMDocument doc = browser.getDocument();
         String html = doc.getDocumentElement().getInnerHTML();
         DOMElement titleError = doc.findElement(By.tagName("title"));
-        if ((titleError != null) && (titleError.getInnerText().trim().equalsIgnoreCase("Error"))) {
+        if ((titleError != null) && ("Error".equalsIgnoreCase(titleError.getInnerText().trim()))) {
             logger.warn("FOUND error-container,出现错误页面提示，继续检索下一条记录（当前记录会最后再次检索）! " + queryOrgName);
             logger.error("******************************************* ERROR html *******************************************");
             logger.error(browser.getHTML());
@@ -171,17 +145,13 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
 
         List<DOMElement> users = browser.getDocument().findElements(By.className("fa-user"));
         DOMNode e;
-        for (Iterator localIterator = users.iterator(); localIterator.hasNext();) {
-            DOMElement ele = (DOMElement) localIterator.next();
-
+        for (DOMElement ele : users) {
             e = ele.getNextSibling();
-//            continue;
-            if ((e.getNodeType().name().equals("ElementNode")) && (e.getNodeName().equals("SPAN")) && (e.getTextContent().trim().equals(crawlerUser))) {
+            if (("ElementNode".equals(e.getNodeType().name())) && ("SPAN".equals(e.getNodeName())) && (e.getTextContent().trim().equals(crawlerUser))) {
                 logger.debug("天眼查已登录！不需要再次登录，跳转到查询首页");
                 browser.loadURL(homeUrl);
                 return;
             }
-//            e = e.getNextSibling();
         }
 
 
@@ -406,7 +376,7 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                         Contact contact;
                         if (spans.get(0).getInnerText().trim().startsWith("联系电话")) {
                             infoTel = SourceUtil.trimTel(spans.get(1).getInnerText().trim());
-                            if ((infoTel != null) && (!infoTel.equals("")) && (infoTel.length() > 5)) {
+                            if ((infoTel != null) && (!"".equals(infoTel)) && (infoTel.length() > 5)) {
                                 contact = new Contact("总机");
                                 contact.setTel(infoTel);
                                 org.setContacts(mergeContact(contact, org.getContacts()));
@@ -557,7 +527,7 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
         String queryOrgName = sourceOrg.getQueryOrgName();
 
         DOMDocument doc = null;
-        String infoTel = null;
+        String infoTel;
         try {
             doc = browser.getDocument();
 
@@ -595,7 +565,7 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
             }
             String address;
             for (DOMElement ele : eles) {
-                if ((!ele.getNodeType().name().equals("ElementNode")) || (!ele.getNodeName().equals("DIV"))) {
+                if ((!"ElementNode".equals(ele.getNodeType().name())) || (!"DIV".equals(ele.getNodeName()))) {
                     break;
                 }
                 List<DOMElement> divs = ele.findElements(By.tagName("div"));
@@ -612,7 +582,7 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                     Contact contact;
                     if (span.getInnerText().trim().startsWith("电话")) {
                         infoTel = StringTool.trimTel(spans.get(1).getInnerText());
-                        if ((infoTel != null) && (!infoTel.equals("")) && (infoTel.length() > 5)) {
+                        if ((infoTel != null) && (!"".equals(infoTel)) && (infoTel.length() > 5)) {
                             contact = new Contact("总机");
                             contact.setTel(infoTel);
                             org.setContacts(mergeContact(contact, org.getContacts()));
@@ -632,7 +602,7 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                                     List<String> tels = gson.fromJson(script.getInnerText(), type);
                                     for (String tel : tels) {
                                         infoTel = StringTool.trimTel(tel);
-                                        if ((infoTel != null) && (!infoTel.equals("")) && (infoTel.length() > 5)) {
+                                        if ((infoTel != null) && (!"".equals(infoTel)) && (infoTel.length() > 5)) {
                                             contact = new Contact("总机");
                                             contact.setTel(infoTel);
                                             org.setContacts(mergeContact(contact, org.getContacts()));
@@ -682,7 +652,7 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                     } else if (span.getInnerText().trim().startsWith("地址")) {
                         if (spans.size() > 1) {
                             address = StringTool.trimAddress(spans.get(1).getAttribute("title"));
-                            if (address.equals("")) {
+                            if ("".equals(address)) {
                                 address = spans.get(1).getInnerText();
                             }
                         } else {
@@ -693,7 +663,7 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                             }
                         }
 
-                        if ((address != null) && (!address.equals(""))) {
+                        if ((address != null) && (!"".equals(address))) {
                             org.setAddress(address);
                         }
                         logger.debug("地址: " + address);
@@ -729,27 +699,27 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                                 String tdTitle = tds.get(i).getInnerText().trim();
                                 if (!StringUtils.isEmpty(tdTitle) && i + 1 < tds.size()) {
                                     String sTmp = tds.get(i+1).getInnerText().trim();
-                                    if (tdTitle.equals("统一社会信用代码")) {
+                                    if ("统一社会信用代码".equals(tdTitle)) {
                                         org.setUscd(sTmp);
                                         logger.debug("uscd: " + sTmp);
-                                    } else if (tdTitle.equals("组织机构代码")) {
+                                    } else if ("组织机构代码".equals(tdTitle)) {
                                         org.setOrgCode(sTmp);
                                         logger.debug("orgCode: " + sTmp);
-                                    } else if (tdTitle.equals("工商注册号")) {
+                                    } else if ("工商注册号".equals(tdTitle)) {
                                         org.setBusiLicenseCode(sTmp);
                                         logger.debug("busiLicenseCode: " + sTmp);
-                                    } else if (tdTitle.equals("行业")) {
+                                    } else if ("行业".equals(tdTitle)) {
                                         org.setIndustryType(sTmp);
                                         logger.debug("industryType: " + sTmp);
-                                    } else if (!tdTitle.equals("注册时间")) {
-                                        if (tdTitle.equals("公司类型")) {
+                                    } else if (!"注册时间".equals(tdTitle)) {
+                                        if ("公司类型".equals(tdTitle)) {
                                             org.setOrgType(getOrgType(sTmp));
                                             logger.debug("orgType: " + sTmp);
-                                        } else if (tdTitle.equals("登记机关")) {
+                                        } else if ("登记机关".equals(tdTitle)) {
                                             org.setRegOrganization(sTmp);
                                             logger.debug("regOrganization: " + sTmp);
                                         } else if (!tdTitle.contains("注册地址")) {
-                                            if (tdTitle.equals("经营范围")) {
+                                            if ("经营范围".equals(tdTitle)) {
                                                 org.setBusiScope(sTmp);
                                                 logger.debug("busiScope: " + sTmp);
                                             }
@@ -783,6 +753,6 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
 
     @Override
     public String getLoginUrl() {
-        return loginUrl;
+        return "https://www.tianyancha.com/login";
     }
 }

@@ -1,6 +1,8 @@
 package com.teamdev.jxbrowser.chromium;
 
 import com.teamdev.jxbrowser.chromium.resources.Resources;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
 import java.awt.event.WindowAdapter;
@@ -12,15 +14,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import javax.activation.CommandMap;
 import javax.activation.MailcapCommandMap;
-import javax.swing.JFrame;
-import javax.swing.JPopupMenu;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
+import javax.swing.*;
 
 @Service
+@Scope("prototype")
 public class JxBrowserDemo {
 
     private static AtomicInteger browserNum = new AtomicInteger(0);
+
+    @Autowired
+    private TabFactory tabFactory;
 
     static {
         try {
@@ -43,14 +46,15 @@ public class JxBrowserDemo {
     public JxBrowserDemo() {
     }
 
-    private static void initEnvironment() throws Exception {
+    private void initEnvironment() throws Exception {
         System.setProperty("apple.laf.useScreenMenuBar", "true");
         System.setProperty("com.apple.mrj.application.apple.menu.about.name", "crawler-or");
+        System.setProperty("java.awt.headless", "false");
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         JPopupMenu.setDefaultLightWeightPopupEnabled(false);
     }
 
-    public static void setMailParam() {
+    private void setMailParam() {
         MailcapCommandMap mc = (MailcapCommandMap) CommandMap.getDefaultCommandMap();
         mc.addMailcap("text/html;; x-java-content-handler=com.sun.mail.handlers.text_html");
         mc.addMailcap("text/xml;; x-java-content-handler=com.sun.mail.handlers.text_xml");
@@ -61,7 +65,7 @@ public class JxBrowserDemo {
         CommandMap.setDefaultCommandMap(mc);
     }
 
-    public static void start() {
+    public void start() {
         LoggerProvider.setLevel(Level.OFF);
         try {
             initEnvironment();
@@ -69,35 +73,33 @@ public class JxBrowserDemo {
             e.printStackTrace();
         }
         setMailParam();
-        SwingUtilities.invokeLater(() -> {
-            initAndDisplayUI();
-        });
+        SwingUtilities.invokeLater(this::initAndDisplayUI);
     }
 
-    private static void initAndDisplayUI() {
+    private void initAndDisplayUI() {
         File workPath = new File("./work/" + browserNum.getAndIncrement());
         if (!workPath.exists()) {
             workPath.mkdir();
         }
 
-        TabFactory.browserContext = new BrowserContext(new BrowserContextParams(workPath.getAbsolutePath()));
+        tabFactory.browserContext = new BrowserContext(new BrowserContextParams(workPath.getAbsolutePath()));
 
         TabbedPane tabbedPane = new TabbedPane();
-        TabFactory.tabbedPane = tabbedPane;
+        tabFactory.tabbedPane = tabbedPane;
 
-        Tab tab = TabFactory.createHomeTab();
+        Tab tab = tabFactory.createHomeTab();
         insertTab(tabbedPane, tab);
 
 
         String title = "天眼查2";
         JFrame frame = new JFrame(title);
-        frame.setDefaultCloseOperation(2);
+        frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         frame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
                 try {
                     tabbedPane.disposeAllTabs();
-                    TabFactory.crawlerOrgService.stopFetch();
+                    tabFactory.crawlerOrgService.stopFetch();
                     Thread.sleep(5000L);
                     System.exit(0);
                 } catch (Throwable ee) {
@@ -116,7 +118,7 @@ public class JxBrowserDemo {
         frame.setExtendedState(6);
     }
 
-    private static void insertTab(TabbedPane tabbedPane, Tab tab) {
+    private void insertTab(TabbedPane tabbedPane, Tab tab) {
         tabbedPane.addTab(tab);
         tabbedPane.selectTab(tab);
     }

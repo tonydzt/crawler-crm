@@ -1,8 +1,5 @@
 package com.kasuo.crawler.domain.datadictionary;
 
-import com.kasuo.crawler.domain.configuration.Item;
-import com.kasuo.crawler.domain.core.DataDictionary;
-import com.kasuo.crawler.domain.configuration.Item;
 import com.kasuo.crawler.domain.core.DataDictionary;
 
 public class CrawlFlag extends DataDictionary<CrawlFlag> {
@@ -13,17 +10,9 @@ public class CrawlFlag extends DataDictionary<CrawlFlag> {
     public static final String SUCCESS = "1";
     public static final String ERROR = "E";
 
-    public CrawlFlag() {
-    }
-
     public CrawlFlag(String typeid) {
         setId(typeid);
     }
-
-    public CrawlFlag(Item item) {
-        load(item);
-    }
-
 
     public boolean isNotSearch() {
         return isType("N");

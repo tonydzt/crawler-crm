@@ -2,9 +2,6 @@ package com.teamdev.jxbrowser.chromium.resources;
 
 import javax.swing.ImageIcon;
 
-
-
-
 public class Resources
 {
   public Resources() {}

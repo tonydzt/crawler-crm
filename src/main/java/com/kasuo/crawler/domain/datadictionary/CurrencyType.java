@@ -1,9 +1,5 @@
 package com.kasuo.crawler.domain.datadictionary;
 
-
-import com.kasuo.crawler.domain.configuration.Item;
-import com.kasuo.crawler.domain.core.DataDictionary;
-import com.kasuo.crawler.domain.configuration.Item;
 import com.kasuo.crawler.domain.core.DataDictionary;
 
 public class CurrencyType extends DataDictionary<CurrencyType> {
@@ -12,17 +8,9 @@ public class CurrencyType extends DataDictionary<CurrencyType> {
     public static final String USD = "USD";
     public static final String HKD = "HKD";
 
-    public CurrencyType() {
-    }
-
     public CurrencyType(String typeid) {
         setId(typeid);
     }
-
-    public CurrencyType(Item item) {
-        load(item);
-    }
-
 
     public static final String EUR = "EUR";
 

@@ -1,8 +1,5 @@
 package com.kasuo.crawler.domain.datadictionary;
 
-import com.kasuo.crawler.domain.configuration.Item;
-import com.kasuo.crawler.domain.core.DataDictionary;
-import com.kasuo.crawler.domain.configuration.Item;
 import com.kasuo.crawler.domain.core.DataDictionary;
 
 public class OrgType extends DataDictionary<OrgType> {
@@ -14,17 +11,9 @@ public class OrgType extends DataDictionary<OrgType> {
     public static final String SOCIETY = "5";
     public static final String OTHER = "0";
 
-    public OrgType() {
-    }
-
     public OrgType(String typeid) {
         setId(typeid);
     }
-
-    public OrgType(Item item) {
-        load(item);
-    }
-
 
     public boolean isEnterprise() {
         return isType("1");

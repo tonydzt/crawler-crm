@@ -1,7 +1,6 @@
 package com.kasuo.crawler.domain.contact;
 
 import com.kasuo.crawler.domain.core.GenericEntity;
-import com.kasuo.crawler.domain.datadictionary.ValidFlag;
 import com.kasuo.crawler.domain.org.Org;
 import com.kasuo.crawler.domain.source.SourceUtil;
 
@@ -10,17 +9,13 @@ public class Contact extends GenericEntity {
     protected String areacode = null;
     protected String tel = null;
     protected String email = null;
-    protected ValidFlag status = null;
-
-    public Contact() {
-    }
 
     public Contact(String name) {
         this.name = name;
     }
 
     private String patchSpace2Tel(String s) {
-        String ret = null;
+        String ret;
 
         if (SourceUtil.isPhoneNum(s)) {
             ret = s.substring(0, 3) + "-" + s.substring(3, 7) + "-" + s.substring(7);
@@ -73,13 +68,4 @@ public class Contact extends GenericEntity {
     public void setEmail(String email) {
         this.email = email;
     }
-
-    public ValidFlag getStatus() {
-        return status;
-    }
-
-    public void setStatus(ValidFlag status) {
-        this.status = status;
-    }
-
 }

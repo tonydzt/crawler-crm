@@ -1,7 +1,6 @@
 package com.kasuo.crawler.domain.core;
 
 import com.kasuo.crawler.domain.configuration.Item;
-import com.kasuo.crawler.domain.configuration.Item;
 
 import java.io.Serializable;
 
@@ -33,19 +32,7 @@ public class DataDictionary<T> implements Serializable {
   public String getName() {
     return name;
   }
-  
-  public String getEnglishName() {
-    return englishName;
-  }
-  
-  public String getValue() {
-    return value;
-  }
-  
-  public void setValue(String value) {
-    this.value = value;
-  }
-  
+
   public void load(Item item) {
     if (item != null) {
       id = item.getKey();

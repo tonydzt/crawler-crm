@@ -26,10 +26,6 @@ public class SourceInput extends GenericEntity {
     public SourceInput() {
     }
 
-    public SourceInput(String id) {
-        this.id = id;
-    }
-
     public Org getOrg() {
         return this.org;
     }

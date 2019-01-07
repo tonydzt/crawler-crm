@@ -9,10 +9,6 @@ public class OrgHisName extends GenericEntity {
     public OrgHisName() {
     }
 
-    public OrgHisName(String id) {
-        this.id = id;
-    }
-
     public String getOrgName() {
         return orgName;
     }

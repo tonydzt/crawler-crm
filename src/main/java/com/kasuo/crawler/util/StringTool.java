@@ -2,12 +2,6 @@ package com.kasuo.crawler.util;
 
 import com.kasuo.crawler.domain.source.SourceUtil;
 
-import java.text.NumberFormat;
-import java.util.Locale;
-import java.util.UUID;
-import java.util.regex.Pattern;
-
-
 public class StringTool {
     public StringTool() {
     }
@@ -23,12 +17,6 @@ public class StringTool {
         System.out.println(web);
     }
 
-
-    public static String similarityResult(double resule) {
-        return NumberFormat.getPercentInstance(new Locale("en ", "US ")).format(resule);
-    }
-
-
     public static double SimilarDegree(String strA, String strB) {
         String newStrA = removeSign(strA);
 
@@ -40,7 +28,6 @@ public class StringTool {
 
         return temp2 * 1.0D / temp;
     }
-
 
     private static String removeSign(String str) {
         StringBuffer sb = new StringBuffer();
@@ -56,7 +43,6 @@ public class StringTool {
         return sb.toString();
     }
 
-
     private static boolean charReg(char charValue) {
         if ((charValue < '一') || (charValue > 40869)) {
             if ((charValue < 'a') || (charValue > 'z')) {
@@ -65,12 +51,8 @@ public class StringTool {
                 }
             }
         }
-        return
-
-
-                true;
+        return true;
     }
-
 
     private static String longestCommonSubstring(String strA, String strB) {
         char[] chars_strA = strA.toCharArray();
@@ -92,7 +74,6 @@ public class StringTool {
                 }
             }
         }
-
 
         char[] result = new char[matrix[m][n]];
 
@@ -191,42 +172,9 @@ public class StringTool {
         return false;
     }
 
-    public static boolean isChinese(String strName) {
-        char[] ch = strName.toCharArray();
-        for (int i = 0; i < ch.length; i++) {
-            char c = ch[i];
-            if (isChinese(c)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public static boolean isChineseByREG(String str) {
-        if (str == null) {
-            return false;
-        }
-        Pattern pattern = Pattern.compile("[\\u4E00-\\u9FBF]+");
-        return pattern.matcher(str.trim()).find();
-    }
-
-    public static boolean isChineseByName(String str) {
-        if (str == null) {
-            return false;
-        }
-
-
-        String reg = "\\p{InCJK Unified Ideographs}&&\\P{Cn}";
-        Pattern pattern = Pattern.compile(reg);
-        return pattern.matcher(str.trim()).find();
-    }
-
-    public static String genUUID() {
-        return UUID.randomUUID().toString().replaceAll("-", "");
-    }
-
-    public static String trimAddress(String s) { if ((s == null) || (s.trim().equals("")))
-        return null;
+    public static String trimAddress(String s) {
+        if ((s == null) || (s.trim().equals("")))
+            return null;
         StringBuffer ret = new StringBuffer(200);
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);

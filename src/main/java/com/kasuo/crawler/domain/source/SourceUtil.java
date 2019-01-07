@@ -2,7 +2,6 @@ package com.kasuo.crawler.domain.source;
 
 import com.kasuo.crawler.util.StringTool;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -164,47 +163,6 @@ public class SourceUtil {
         return s.length() <= 5;
     }
 
-
-    public static String trimAddress(String s) {
-        if ((s == null) || (s.trim().equals(""))) {
-            return null;
-        }
-        StringBuffer ret = new StringBuffer(300);
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            if ((c != ' ') && (c != '\n') && (c != '\r') && (c != '\t') && (c != ' ')) {
-                if (c == 65288) {
-                    c = '(';
-                } else if (c == 65289) {
-                    c = ')';
-                } else if (c == '{') {
-                    c = '(';
-                } else if (c == '}') {
-                    c = ')';
-                } else if (c == '【') {
-                    c = '(';
-                } else if (c == '】') {
-                    c = ')';
-                } else if (c == 65292) {
-                    c = ',';
-                } else if (c == '。') {
-                    c = ',';
-                } else if (c == 65307) {
-                    c = ';';
-                }
-                ret.append(c);
-            }
-        }
-        String ss = ret.toString();
-
-        int i = ss.indexOf('[');
-        if (i != -1) {
-            ss = ss.substring(0, i);
-        }
-        return ss;
-    }
-
-
     public static String trimOrgName(String s) {
         if ((s == null) || (s.trim().equals(""))) {
             return null;
@@ -268,7 +226,6 @@ public class SourceUtil {
         return ss;
     }
 
-
     public static boolean isPhoneNum(String tel) {
         if ((tel == null) || (tel.trim().equals(""))) {
             return false;
@@ -286,7 +243,6 @@ public class SourceUtil {
         return true;
     }
 
-
     public static String trimTel(String s) {
         if ((s == null) || (s.trim().equals(""))) {
             return null;
@@ -303,7 +259,6 @@ public class SourceUtil {
         return ss;
     }
 
-
     public static String trimAllSpace(String s) {
         if ((s == null) || (s.trim().equals(""))) {
             return null;
@@ -319,19 +274,6 @@ public class SourceUtil {
 
         return ss;
     }
-
-
-    public static boolean isNotFoundOrgName(String orgName) {
-        if (orgName == null)
-            return false;
-        Pattern pattern = Pattern.compile("^[0-9_]*$");
-        return pattern.matcher(orgName).find();
-    }
-
-    public static boolean isNotFoundOrgName(String orgName, Pattern pattern) {
-        return orgName != null && pattern.matcher(orgName).find();
-    }
-
 
     public static boolean isForeignCompany(String orgName) {
         if (orgName == null) {
@@ -351,59 +293,5 @@ public class SourceUtil {
 
         Pattern pattern = Pattern.compile("^[a-zA-Z0-9\\. ,;，；]*$");
         return pattern.matcher(s).find();
-    }
-
-    public static boolean isForeignCompany(String orgName, Pattern pattern) {
-        if (orgName == null) {
-            return false;
-        }
-        if (orgName.length() < 5) {
-            return false;
-        }
-        String s = orgName.substring(orgName.length() - 4);
-
-        return pattern.matcher(s).find();
-    }
-
-
-    private static boolean grantMdf(File file) {
-        try {
-            String cmd = "cmd /c c:/windows/system32/icacls " + file.getAbsolutePath() + " /grant \"Authenticated Users\":F";
-            Process pro = Runtime.getRuntime().exec(cmd);
-
-            return true;
-        } catch (Throwable e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-
-    private static String trimCrawledAgentName(String agentName) {
-        String s = agentName.replaceAll("（", "(");
-        s = s.replaceAll("）", ")").trim();
-
-        String ret = null;
-        String flag = null;
-        int i = s.lastIndexOf(')');
-        if (i == s.length() - 1) {
-            i = s.lastIndexOf('(');
-            if (i == -1) {
-                return null;
-            }
-            ret = s.substring(0, i);
-            flag = s.substring(i);
-            if ((flag.contains("已注销")) || (flag.contains("停止代理"))) {
-                return null;
-            }
-            return ret;
-        }
-
-        return s;
-    }
-
-    public static boolean orgNameIsRegNum(String orgName) {
-        Pattern pattern = Pattern.compile("^[0-9]{5,10}_[0-9]{1,2}$");
-        return pattern.matcher(orgName).find();
     }
 }

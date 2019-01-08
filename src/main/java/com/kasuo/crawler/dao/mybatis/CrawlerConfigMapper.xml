@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kasuo.crawler.dao.mybatis.CrawlerConfigDao">
+
+    <resultMap id="resultMap" type="com.kasuo.crawler.domain.CrawlerConfig">
+        <id property="id" column="id" jdbcType="BIGINT"/>
+        <id property="key" column="key" jdbcType="VARCHAR"/>
+        <id property="value" column="value" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="findByKey" resultMap="resultMap" parameterType="int">
+        SELECT
+        id, `key`, `value`
+        FROM
+        crawler_config
+        <where>
+            `key`=#{key}
+        </where>
+    </select>
+
+    <insert id="insert" parameterType="com.kasuo.crawler.domain.CrawlerConfig" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO
+            crawler_config (`key`, `value`)
+        VALUES
+        (#{key}, #{value})
+    </insert>
+
+    <update id="update">
+        UPDATE crawler_config
+        <set >
+            <if test="value != null">`value`=#{value},</if>
+        </set>
+        <where>
+            `key`=#{key}
+        </where>
+    </update>
+</mapper>

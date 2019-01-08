@@ -1,5 +1,7 @@
 package com.kasuo.crawler.dao;
 
+import com.kasuo.crawler.dao.mybatis.CrawlerConfigDao;
+import com.kasuo.crawler.domain.CrawlerConfig;
 import com.kasuo.crawler.domain.Trademark;
 import com.kasuo.crawler.domain.vo.TrademarkExportVO;
 import org.slf4j.Logger;
@@ -25,6 +27,9 @@ public class TrademarkDao {
 
     @Autowired
     protected JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    protected CrawlerConfigDao crawlerConfigDao;
 
     public boolean insert(Trademark trademark) {
         String sql = "insert into trademark (excel_status_id, category, registration_no, trademark, date, applicant, address, agent, service, status, mobile, tel) values " +
@@ -56,7 +61,10 @@ public class TrademarkDao {
     }
 
     public List<Trademark> findUnCraw() {
-        String sql = "select * from trademark where craw_status = 0 limit 5";
+
+        CrawlerConfig crawlerConfig = crawlerConfigDao.findByKey(CrawlerConfig.CRAWLER_DATE);
+
+        String sql = "select * from trademark where craw_status = 0 " + (crawlerConfig == null ? "" : "and date = '" + crawlerConfig.getValue() + "'") + " limit 5";
         List<Trademark> trademarkList = jdbcTemplate.query(sql, getRowMapper());
         if (CollectionUtils.isEmpty(trademarkList)) {
             return null;

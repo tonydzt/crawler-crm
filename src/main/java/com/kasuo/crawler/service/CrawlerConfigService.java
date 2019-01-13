@@ -41,4 +41,23 @@ public class CrawlerConfigService {
             crawlerConfigDao.update(crawlerConfig);
         }
     }
+
+    public void saveCrawlerNum(String value) {
+        CrawlerConfig crawlerConfig = crawlerConfigDao.findByKey(CrawlerConfig.CRAWLER_NUM);
+
+        boolean needInit = crawlerConfig == null;
+
+        if (needInit) {
+            crawlerConfig = new CrawlerConfig();
+        }
+
+        crawlerConfig.setKey(CrawlerConfig.CRAWLER_NUM);
+        crawlerConfig.setValue(value);
+
+        if (needInit) {
+            crawlerConfigDao.insert(crawlerConfig);
+        } else {
+            crawlerConfigDao.update(crawlerConfig);
+        }
+    }
 }

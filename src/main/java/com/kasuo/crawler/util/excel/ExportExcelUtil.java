@@ -29,6 +29,15 @@ public class ExportExcelUtil {
         exportData(sheet, excelData.getRows(), cellStyle);
 
         File f = new File(path);
+
+        //如果已有文件，则在导出文件名字 +1序号
+        int num = 1;
+        while (f.exists()) {
+            String[] pathArr = path.split("\\.");
+            f = new File(pathArr[0] + num + ".xls");
+            num ++;
+        }
+
         if (!f.getParentFile().exists()) {
             f.getParentFile().getParentFile().mkdir();
             f.getParentFile().mkdir();

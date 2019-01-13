@@ -7,6 +7,7 @@ package com.kasuo.crawler.domain;
 public class CrawlerConfig {
 
     public static final String CRAWLER_DATE = "crawler_date";
+    public static final String CRAWLER_NUM = "crawler_num";
 
     private Long id;
     private String key;

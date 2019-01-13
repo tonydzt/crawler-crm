@@ -7,6 +7,16 @@
         <result column="name" property="name" javaType="String" jdbcType="VARCHAR"/>
     </resultMap>
 
+    <select id="find" resultMap="resultMap" parameterType="int">
+        SELECT
+        id, name
+        FROM
+        employee
+        <where>
+            id=#{id}
+        </where>
+    </select>
+
     <select id="findByName" resultMap="resultMap" parameterType="int">
         SELECT
         id, name

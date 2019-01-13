@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kasuo.crawler.dao.mybatis.AssignmentDao">
+
+    <resultMap id="resultMap" type="com.kasuo.crawler.domain.Assignment">
+        <id property="id" column="id" jdbcType="BIGINT"/>
+        <id property="key" column="key" jdbcType="VARCHAR"/>
+        <id property="value" column="value" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="findByOrgIdAndDate" resultMap="resultMap" parameterType="int">
+        SELECT
+        id, org_id, trademark, registration_no
+        FROM
+        assignment
+        <where>
+            org_id=#{orgId} and `date`=#{date}
+        </where>
+    </select>
+
+    <insert id="insert" parameterType="com.kasuo.crawler.domain.Assignment" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO
+            assignment (org_id, applicant, contact, address, trademark, registration_no, `date`, category, assignment_name, legal_person, is_again)
+        VALUES
+        (#{orgId}, #{applicant}, #{contact}, #{address}, #{trademark}, #{registrationNo}, #{date}, #{category}, #{assignmentName}, #{legalPerson}, #{isAgain})
+    </insert>
+
+    <update id="update">
+        UPDATE assignment
+        <set >
+            <if test="registrationNo != null">registration_no=#{registrationNo},</if>
+            <if test="trademark != null">trademark=#{trademark},</if>
+        </set>
+        <where>
+            `id`=#{id}
+        </where>
+    </update>
+
+    <select id="countByDate" resultType="int">
+        SELECT
+        count(1)
+        FROM
+        assignment
+        <where>
+            date#{date}
+        </where>
+    </select>
+</mapper>

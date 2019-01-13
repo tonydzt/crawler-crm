@@ -17,4 +17,6 @@ public interface EmployeeDao {
     void insert(Employee employee);
 
     List<Employee> findAll();
+
+    Employee find(String employeeId);
 }

@@ -20,6 +20,7 @@ public class ExcelStatus {
     private String path;
     private String fileName;
     private Integer status;
+    private String date;
     private Integer totalNum;
     private Integer validNum;
     private Integer duplicateNum;
@@ -54,6 +55,14 @@ public class ExcelStatus {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public String getDate() {
+        return date;
+    }
+
+    public void setDate(String date) {
+        this.date = date;
     }
 
     public Integer getTotalNum() {

@@ -121,11 +121,14 @@ public class BaituTrademarkService {
 
         if (excelStatus == null || excelStatus.getStatus() == ExcelStatus.UN_PARSE) {
 
+            System.out.println("file.getParent():" + file.getParentFile().getName());
+
             if (excelStatus == null) {
                 excelStatus = new ExcelStatus();
                 excelStatus.setPath(file.getParent());
                 excelStatus.setFileName(file.getName());
                 excelStatus.setStatus(ExcelStatus.PARSING);
+                excelStatus.setDate(file.getParentFile().getName());
                 excelStatusDao.insert(excelStatus);
             }
 

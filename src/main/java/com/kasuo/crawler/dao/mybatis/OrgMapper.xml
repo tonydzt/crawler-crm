@@ -8,11 +8,12 @@
         <result column="legal_person" property="legalPerson" javaType="String" jdbcType="VARCHAR"/>
         <result column="registered_capital" property="registeredCapital" javaType="String" jdbcType="VARCHAR"/>
         <result column="has_contact" property="hasContact" javaType="boolean" jdbcType="TINYINT"/>
+        <result column="employee_id" property="employeeId" javaType="long" jdbcType="BIGINT"/>
     </resultMap>
 
     <select id="findByNameForUpdate" resultMap="resultMap">
         SELECT
-        id, name, legal_person, registered_capital, has_contact
+        id, name, legal_person, registered_capital, has_contact, employee_id
         FROM
         org
         <where>

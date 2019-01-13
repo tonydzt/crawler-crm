@@ -388,6 +388,8 @@ public abstract class AbstractCrawlerService {
                 if (orgTest != null) {
                     logger.warn("Org {} already exist!", input.getOrgName());
                     SpringBeanUtil.getBean(TrademarkDao.class).updateCrawStatusSkip(Long.parseLong(input.getId()), orgTest.getId(), false);
+
+                    SpringBeanUtil.getBean(AssignmentService.class).assignOrg(orgTest, Long.parseLong(input.getId()));
                     continue;
                 }
 

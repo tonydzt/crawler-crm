@@ -102,9 +102,13 @@ public class TrademarkDao {
         return (resultSet, i) -> {
             Trademark trademark = new Trademark();
             trademark.setId(resultSet.getLong("id"));
+            trademark.setCategory(resultSet.getInt("category"));
+            trademark.setDate(resultSet.getString("date"));
+            trademark.setAddress(resultSet.getString("address"));
             trademark.setRegistrationNo(resultSet.getInt("registration_no"));
             trademark.setTrademark(resultSet.getString("trademark"));
             trademark.setApplicant(resultSet.getString("applicant"));
+            trademark.setAgain(resultSet.getBoolean("is_again"));
             return trademark;
         };
     }
@@ -139,5 +143,10 @@ public class TrademarkDao {
     public void updateEmployeeId(List<String> trademarkIds, Long employeeId) {
         String sql = "update trademark set employee_id = ? where id in (" + String.join(",", trademarkIds) + ")";
         jdbcTemplate.update(sql, employeeId);
+    }
+
+    public Trademark find(Long trademarkId) {
+        String sql = "select * from trademark where id = " + trademarkId;
+        return jdbcTemplate.queryForObject(sql, getRowMapper());
     }
 }

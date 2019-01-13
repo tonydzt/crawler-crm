@@ -11,6 +11,7 @@ import com.kasuo.crawler.domain.Org;
 import com.kasuo.crawler.domain.Tel;
 import com.kasuo.crawler.domain.contact.Contact;
 import com.kasuo.crawler.domain.vo.OrgVO;
+import com.kasuo.crawler.service.AssignmentService;
 import com.kasuo.crawler.util.RegexUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,9 @@ import java.util.List;
  */
 @Service
 public class OrgService {
+
+    @Autowired
+    private AssignmentService assignmentService;
 
     @Autowired
     private OrgDaoImpl orgDao;
@@ -90,8 +94,11 @@ public class OrgService {
 
         if (mobileList.size() > 0 || telList.size() > 0) {
             orgDao.updateHasContact(org.getId());
+            org.setHasContact(true);
         }
 
         trademarkDao.updateCrawStatus(trademarkId, org.getId(), orgVO.getNew());
+
+        assignmentService.assignOrg(org, trademarkId);
     }
 }

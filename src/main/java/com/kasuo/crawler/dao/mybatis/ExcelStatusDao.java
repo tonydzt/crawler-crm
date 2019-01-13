@@ -22,4 +22,6 @@ public interface ExcelStatusDao {
     void insert(ExcelStatus excelStatus);
 
     int update(ExcelStatus excelStatus);
+
+    String findNextDate(String now);
 }

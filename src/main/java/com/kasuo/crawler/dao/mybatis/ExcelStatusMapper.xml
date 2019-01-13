@@ -19,6 +19,16 @@
         </where>
     </select>
 
+    <select id="findNextDate" resultType="string">
+        SELECT
+        min(`date`)
+        FROM
+        excel_status
+        <where>
+            <![CDATA[ `date`>#{date} ]]>
+        </where>
+    </select>
+
     <select id="findFile" resultMap="resultMap" parameterType="int">
         SELECT
         id, path, file_name, status
@@ -41,9 +51,9 @@
 
     <insert id="insert" parameterType="com.kasuo.crawler.domain.ExcelStatus" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO
-        excel_status (id, path, file_name, status, total_num, valid_num, duplicate_num)
+        excel_status (id, path, file_name, date, status, total_num, valid_num, duplicate_num)
         VALUES
-        (#{id}, #{path}, #{fileName}, #{status}, #{totalNum}, #{validNum}, #{duplicateNum})
+        (#{id}, #{path}, #{fileName}, #{date}, #{status}, #{totalNum}, #{validNum}, #{duplicateNum})
     </insert>
 
     <update id="update">

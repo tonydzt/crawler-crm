@@ -3,10 +3,7 @@ package com.kasuo.crawler.service;
 import com.kasuo.crawler.config.ExcelConfig;
 import com.kasuo.crawler.dao.TrademarkDao;
 import com.kasuo.crawler.dao.mybatis.*;
-import com.kasuo.crawler.domain.Employee;
-import com.kasuo.crawler.domain.ExcelStatus;
-import com.kasuo.crawler.domain.Mobile;
-import com.kasuo.crawler.domain.Tel;
+import com.kasuo.crawler.domain.*;
 import com.kasuo.crawler.domain.vo.TrademarkExportVO;
 import com.kasuo.crawler.util.excel.ExcelData;
 import com.kasuo.crawler.util.excel.ExportExcelUtil;
@@ -20,11 +17,17 @@ import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
+ * 1.手机号优先
+ * 2.老客户新机会优先分配给负责的业务员
+ * 3.可以根据地域分配
+ * 4.每个人分配的数据量可以不同
+ *
  * @author douzhitong
  * @date 2018/12/22
  */
@@ -33,10 +36,16 @@ public class AssignmentService {
 
     private static final Logger logger = LoggerFactory.getLogger(AssignmentService.class);
 
-    private static List<String> exportExcelHeads = Lists.newArrayList("客户名称(必填)",	"电话",	"地址",	"跟进状态",	"下次跟进时间",	"备注", "商标名称	", "注册号", "申请时间", "类别", "负责人", "联系人姓名", "联系人电话", "联系人手机", "机会类型");
+    private static List<String> exportExcelHeads = Lists.newArrayList("客户名称(必填)", "电话", "地址", "跟进状态", "下次跟进时间", "备注", "商标名称	", "注册号", "申请时间", "类别", "负责人", "联系人姓名", "联系人电话", "联系人手机", "机会类型");
 
     @Autowired
     private ExcelConfig excelConfig;
+
+    @Autowired
+    private CrawlerConfigService crawlerConfigService;
+
+    @Autowired
+    private AssignmentDao assignmentDao;
 
     @Autowired
     private TrademarkDao trademarkDao;
@@ -56,6 +65,71 @@ public class AssignmentService {
     @Autowired
     private MobileDao mobileDao;
 
+    public void assignOrg(Org org, Long trademarkId) {
+
+        if (org.getHasContact() != null && org.getHasContact()) {
+            String date = crawlerConfigService.getValueBykey(CrawlerConfig.CRAWLER_DATE);
+            Assignment assignment = assignmentDao.findByOrgIdAndDate(org.getId(), date);
+            Trademark trademark = trademarkDao.find(trademarkId);
+
+            if (assignment == null) {
+
+                Contact contact = getContact(org.getId());
+
+                assignment = new Assignment();
+                assignment.setOrgId(org.getId());
+                assignment.setCategory(trademark.getCategory());
+                assignment.setApplicant(trademark.getApplicant());
+                assignment.setLegalPerson(org.getLegalPerson());
+                assignment.setContact(contact.contact);
+                assignment.setAddress(trademark.getAddress());
+                assignment.setTrademark(trademark.getTrademark());
+                assignment.setRegistrationNo(trademark.getRegistrationNo().toString());
+                assignment.setDate(trademark.getDate());
+                assignment.setTelNum(contact.telNum);
+                assignment.setMobileNum(contact.mobileNum);
+                assignment.setHasTel(contact.hasTel);
+
+                if (org.getEmployeeId() != null) {
+                    Employee employee = employeeDao.find(org.getEmployeeId());
+                    assignment.setAgain(true);
+                    assignment.setAssignmentName(employee.getName());
+                } else {
+                    assignment.setAgain(false);
+                    assignment.setAssignmentName(null);
+                }
+
+                assignmentDao.insert(assignment);
+
+                checkCrawlerNum(date);
+            } else {
+                Assignment udpateAssignment = new Assignment();
+                udpateAssignment.setId(assignment.getId());
+                udpateAssignment.setTrademark(assignment.getTrademark() + ";\n" + trademark.getTrademark());
+                udpateAssignment.setRegistrationNo(assignment.getRegistrationNo() + ";\n" + trademark.getRegistrationNo());
+
+                assignmentDao.update(udpateAssignment);
+            }
+        }
+    }
+
+    /**
+     * 如果超过每日抓取上限，则抓取下一天
+     */
+    private void checkCrawlerNum(String date) {
+        String maxStr = crawlerConfigService.getValueBykey(CrawlerConfig.CRAWLER_NUM);
+        if (!StringUtils.isEmpty(maxStr)) {
+            int count = assignmentDao.countByDate(date);
+            int max = Integer.parseInt(maxStr);
+            if (count >= max) {
+                String nextDate = excelStatusDao.findNextDate(date);
+                if (!StringUtils.isEmpty(nextDate)) {
+                    crawlerConfigService.saveCrawlerDate(nextDate);
+                }
+            }
+        }
+    }
+
     public void assign(String batchNo, Map<String, Object> assignMap) {
 
         List<ExcelStatus> excelStatusList = excelStatusDao.findByPath(excelConfig.getRootPath() + batchNo);
@@ -69,9 +143,9 @@ public class AssignmentService {
                 .map(excelStatus -> excelStatus.getId().toString())
                 .collect(Collectors.toList());
 
-        for (Map.Entry<String,Object> assignEntry : assignMap.entrySet()) {
+        for (Map.Entry<String, Object> assignEntry : assignMap.entrySet()) {
             String name = assignEntry.getKey();
-            int num =  Integer.parseInt(assignEntry.getValue() + "");
+            int num = Integer.parseInt(assignEntry.getValue() + "");
             Employee employee = employeeDao.findByName(name);
             List<TrademarkExportVO> dataList = new ArrayList<>();
             List<String> trademarkIds = new ArrayList<>();
@@ -154,7 +228,7 @@ public class AssignmentService {
         }
     }
 
-    private List<TrademarkExportVO> combine (List<TrademarkExportVO> originList, int num, List<String> trademarkIds, String assignmentName) {
+    private List<TrademarkExportVO> combine(List<TrademarkExportVO> originList, int num, List<String> trademarkIds, String assignmentName) {
 
         Map<Long, List<TrademarkExportVO>> map = originList.stream().collect(Collectors.groupingBy(TrademarkExportVO::getOrgId))
                 .entrySet().stream().limit(num).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -178,6 +252,56 @@ public class AssignmentService {
         }
 
         return returnList;
+    }
+
+    private Contact getContact(Long orgId) {
+        Contact contact = new Contact();
+        contact.hasTel = false;
+        List<Tel> telList = telDao.findByOrgIds(Collections.singletonList(orgId));
+        List<Mobile> mobileList = mobileDao.findByOrgIds(Collections.singletonList(orgId));
+        StringBuilder contactBuilder = new StringBuilder();
+
+        int telNum = 0;
+        int mobileNum = 0;
+
+        String tel = null;
+        if (!CollectionUtils.isEmpty(telList)) {
+            contact.hasTel = true;
+            telNum = telList.size();
+            tel = telList.stream()
+                    .map(Tel::getTelNo)
+                    .reduce((a, b) -> a + ";\n" + b).get();
+            if (!StringUtils.isEmpty(tel)) {
+                contactBuilder.append(tel);
+            }
+        }
+
+        if (!CollectionUtils.isEmpty(mobileList)) {
+            mobileNum = mobileList.size();
+            String mobile = mobileList.stream()
+                    .map(Mobile::getMobileNo)
+                    .reduce((a, b) -> a + ";\n" + b).get();
+            if (!StringUtils.isEmpty(mobile)) {
+                if (!StringUtils.isEmpty(tel)) {
+                    contactBuilder.append(";\n");
+                }
+                contactBuilder.append(mobile);
+            }
+        }
+
+        contact.contact = contactBuilder.toString();
+        contact.telNum = telNum;
+        contact.mobileNum = mobileNum;
+
+        return contact;
+    }
+
+
+    private class Contact {
+        String contact;
+        boolean hasTel;
+        int telNum;
+        int mobileNum;
     }
 
 

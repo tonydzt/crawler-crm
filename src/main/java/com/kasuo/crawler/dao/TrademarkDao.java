@@ -81,7 +81,8 @@ public class TrademarkDao {
     public List<TrademarkExportVO> findOldCustomerNewChance(Long employeeId, List<String> excelStatusList) {
         String sql = "SELECT trademark.id, trademark.category, trademark.org_id, applicant, legal_person, address, trademark, registration_no, date, is_again FROM trademark LEFT JOIN org " +
                 " ON trademark.org_id = org.id AND trademark.is_again = 1 AND trademark.employee_id IS NULL AND trademark.excel_status_id IN (" + String.join(",", excelStatusList) + ")" +
-                " WHERE org.has_contact = 1 AND org.employee_id = ?";
+//                " WHERE org.has_contact = 1 AND org.employee_id = ?";
+                " WHERE org.has_contact = 1 AND org.employee_id = ? and trademark.address like '%山东%'";
 
         logger.info("findOldCustomerNewChance sql: {}, employeeId: {}", sql, employeeId);
         return jdbcTemplate.query(sql, new Object[]{employeeId}, getExportRowMapper());
@@ -90,7 +91,8 @@ public class TrademarkDao {
     public List<TrademarkExportVO> findNewCustomerChance(List<String> excelStatusList, Integer num) {
         String sql = "SELECT trademark.id, trademark.category, trademark.org_id, applicant, legal_person, address, trademark, registration_no, date, 0 is_again FROM trademark LEFT JOIN org" +
                 " ON trademark.org_id = org.id AND trademark.employee_id IS NULL AND trademark.excel_status_id IN (" + String.join(",", excelStatusList) + ")" +
-                " WHERE org.has_contact = 1 AND org.employee_id IS NULL ORDER BY applicant LIMIT ?";
+//                " WHERE org.has_contact = 1 AND org.employee_id IS NULL ORDER BY applicant LIMIT ?";
+                " WHERE org.has_contact = 1 AND org.employee_id IS NULL and trademark.address like '%山东%' LIMIT ?";
 
         logger.info("findNewCustomerChance sql: {}, num: {}", sql, num);
         return jdbcTemplate.query(sql, new Object[]{num}, getExportRowMapper());

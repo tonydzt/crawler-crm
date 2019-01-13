@@ -25,6 +25,6 @@ public class ExcelController {
     @RequestMapping(value = "/parse", method = RequestMethod.POST)
     public Response excel(@RequestBody Map<String,Object> body) throws InterruptedException {
         String path = body.get("path").toString();
-        return baituTrademarkService.excel(path);
+        return baituTrademarkService.excel(path, false);
     }
 }

@@ -1,5 +1,6 @@
 package com.kasuo.crawler.service;
 
+import com.google.common.collect.Sets;
 import com.kasuo.crawler.common.ErrorCode;
 import com.kasuo.crawler.common.Response;
 import com.kasuo.crawler.config.ExcelConfig;
@@ -18,14 +19,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author douzhitong
@@ -56,14 +61,14 @@ public class BaituTrademarkService {
     @Autowired
     private TrademarkDao trademarkDao;
 
-    public Response excel(String path) throws InterruptedException {
+    public Response excel(String path, boolean isAuto) throws InterruptedException {
 
         long t1 = System.currentTimeMillis();
 
         String filePath = excelConfig.getRootPath() + path;
         File dir = new File(filePath);
 
-        if (!dir.exists()) {
+        if (!dir.exists() || dir.listFiles() == null) {
             logger.error("No path, fileName: {}", filePath);
             return ErrorCode.ERROR_NO_PATH;
         }
@@ -73,9 +78,25 @@ public class BaituTrademarkService {
             return ErrorCode.ERROR_NOT_PATH;
         }
 
-        if (dir.listFiles().length > 0) {
-            CountDownLatch countDownLatch = new CountDownLatch(dir.listFiles().length);
-            for (File file : dir.listFiles()) {
+        List<ExcelStatus> excelStatusList = excelStatusDao.findByPath(filePath);
+        if (!CollectionUtils.isEmpty(excelStatusList) && isAuto) {
+            logger.error("Already parsed, fileName: {}", filePath);
+            return ErrorCode.ERROR_ALREADY_PARSED;
+        }
+
+        Set<String> fileNames = Stream.of(dir.listFiles()).map(File::getName).collect(Collectors.toSet());
+        Set<String> parsedFileNames = excelStatusList.stream().map(ExcelStatus::getFileName).collect(Collectors.toSet());
+
+        Set<String> difference = Sets.difference(fileNames, parsedFileNames);
+
+        List<File> files =  Stream.of(dir.listFiles())
+                .filter(file -> difference.contains(file.getName()))
+                .filter(file -> "xls".equals(file.getName().split("\\.")[1]))
+                .collect(Collectors.toList());
+
+        if (files.size() > 0) {
+            CountDownLatch countDownLatch = new CountDownLatch(files.size());
+            for (File file : files) {
                 threadPoolTaskExecutor.submit(() -> {
                     parse(file);
                     countDownLatch.countDown();
@@ -90,7 +111,7 @@ public class BaituTrademarkService {
 
             return ErrorCode.OK_EMPTY;
         } else {
-            return ErrorCode.ERROR_EMPTY_PATH;
+            return ErrorCode.ERROR_NO_FILE_NEED_PARSE;
         }
     }
 

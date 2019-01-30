@@ -12,10 +12,10 @@
 
     <appender name="fileAppender"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>/data0/logs/classroom-api/classroom.log</file>
+        <file>E:\software\logs\crawler.log</file>
         <rollingPolicy
                 class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>/data0/logs/classroom-api/classroom.log.%d{yyyyMMdd}
+            <fileNamePattern>E:\software\logs\crawler.log.%d{yyyyMMdd}
             </fileNamePattern>
         </rollingPolicy>
         <encoder charset="UTF-8">
@@ -26,6 +26,7 @@
 
     <logger name="root" level="DEBUG">
         <appender-ref ref="consoleAppender" />
+        <appender-ref ref="fileAppender" />
     </logger>
 
     <logger name="org.springframework" level="ERROR"/>

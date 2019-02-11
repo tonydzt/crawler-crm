@@ -101,7 +101,7 @@ public class JxBrowserDemo {
                     tabbedPane.disposeAllTabs();
                     tabFactory.crawlerOrgService.stopFetch();
                     Thread.sleep(5000L);
-                    System.exit(0);
+//                    System.exit(0);
                 } catch (Throwable ee) {
                     System.out.println("windowClosing error!");
                 }

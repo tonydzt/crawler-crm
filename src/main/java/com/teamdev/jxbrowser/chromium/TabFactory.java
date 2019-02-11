@@ -116,7 +116,7 @@ public final class TabFactory {
                     crawlerOrgService.resetFetchStatus(event.getBrowser(), "Home浏览器停止运行");
 
                     Thread.sleep(5000L);
-                    System.exit(-1);
+//                    System.exit(-1);
                 } catch (Throwable e) {
                     logger.error("Home onRenderGone error!", e);
                 }

@@ -42,7 +42,7 @@
         FROM
         assignment
         <where>
-            date#{date}
+            date=#{date}
         </where>
     </select>
 </mapper>

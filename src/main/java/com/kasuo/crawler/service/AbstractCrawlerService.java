@@ -906,7 +906,7 @@ public abstract class AbstractCrawlerService {
 
             sleep(30000L);
 
-            System.exit(0);
+//            System.exit(0);
         }
         return false;
     }

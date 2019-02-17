@@ -1,8 +1,11 @@
 package com.kasuo.crawler.dao.mybatis;
 
 import com.kasuo.crawler.domain.Assignment;
+import com.kasuo.crawler.domain.vo.AssignVo;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
 
 /**
  * @author douzhitong
@@ -18,4 +21,9 @@ public interface AssignmentDao {
     Assignment findByOrgIdAndDate(@Param("orgId") Long orgId, @Param("date") String date);
 
     int countByDate(String date);
+
+    int countGroup();
+
+    List<AssignVo> findPage(@Param("pageNo") Integer pageNo, @Param("pageNum") Integer pageNum);
+
 }

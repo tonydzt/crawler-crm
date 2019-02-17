@@ -1,9 +1,11 @@
 package com.kasuo.crawler.service;
 
+import com.kasuo.crawler.common.Pagable;
 import com.kasuo.crawler.config.ExcelConfig;
 import com.kasuo.crawler.dao.TrademarkDao;
 import com.kasuo.crawler.dao.mybatis.*;
 import com.kasuo.crawler.domain.*;
+import com.kasuo.crawler.domain.vo.AssignVo;
 import com.kasuo.crawler.domain.vo.TrademarkExportVO;
 import com.kasuo.crawler.util.excel.ExcelData;
 import com.kasuo.crawler.util.excel.ExportExcelUtil;
@@ -252,6 +254,20 @@ public class AssignmentService {
         }
 
         return returnList;
+    }
+
+    public Pagable<AssignVo> getAssignPage(Integer offset) {
+
+        Pagable<AssignVo> pagable = new Pagable<>();
+        Integer totalNum = assignmentDao.countGroup();
+        Integer pageNum = 10;
+        List<AssignVo> list = assignmentDao.findPage(offset, pageNum);
+
+        pagable.setTotal(totalNum);
+        pagable.setPageNo(offset / pageNum);
+        pagable.setPageNum(pageNum);
+        pagable.setRows(list);
+        return pagable;
     }
 
     private Contact getContact(Long orgId) {

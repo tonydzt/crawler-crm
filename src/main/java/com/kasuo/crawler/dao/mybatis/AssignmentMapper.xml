@@ -8,6 +8,16 @@
         <id property="value" column="value" jdbcType="VARCHAR"/>
     </resultMap>
 
+    <resultMap id="assignResultMap" type="com.kasuo.crawler.domain.vo.AssignVo">
+        <id property="date" column="date" jdbcType="VARCHAR"/>
+        <id property="num" column="num" jdbcType="INTEGER"/>
+        <id property="mobileNum" column="mobile_num" jdbcType="INTEGER"/>
+        <id property="telNum" column="tel_num" jdbcType="INTEGER"/>
+        <id property="totalNum" column="total_num" jdbcType="INTEGER"/>
+        <id property="assignNum" column="assign_num" jdbcType="INTEGER"/>
+        <id property="unassignNum" column="unassign_num" jdbcType="INTEGER"/>
+    </resultMap>
+
     <select id="findByOrgIdAndDate" resultMap="resultMap" parameterType="int">
         SELECT
         id, org_id, trademark, registration_no
@@ -44,5 +54,19 @@
         <where>
             date=#{date}
         </where>
+    </select>
+
+    <select id="countGroup" resultType="int">
+        SELECT COUNT(*) FROM
+            (SELECT `date`, count(*) num, count(mobile_num) mobile_num, count(tel_num) tel_num, (count(mobile_num) + count(tel_num)) total_num,
+                                    count(assignment_name is not null or null) assign_num, count(assignment_name is null or null) unassign_num
+             FROM assignment GROUP BY `date`) n;
+    </select>
+
+    <select id="findPage" resultMap="assignResultMap">
+        SELECT `date`, num, mobile_num, tel_num, total_num, assign_num, unassign_num FROM
+            (SELECT `date`, count(*) num, count(mobile_num) mobile_num, count(tel_num) tel_num, (count(mobile_num) + count(tel_num)) total_num,
+                                    count(assignment_name is not null or null) assign_num, count(assignment_name is null or null) unassign_num
+             FROM assignment GROUP BY `date`) n ORDER BY `date` DESC limit #{pageNo}, #{pageNum};
     </select>
 </mapper>

@@ -22,7 +22,6 @@ import com.teamdev.jxbrowser.chromium.dom.DOMNode;
 import java.lang.reflect.Type;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -682,9 +681,9 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
             DOMElement legalPersonInner = legalPerson.findElement(By.className("link-click"));
             org.setLegalPerson(legalPersonInner.getAttribute("title"));
 
-            //注册资本
-            DOMElement registeredCapital = (DOMElement) doc.findElement(By.className("tyc-num lh24")).getParent();
-            org.setRegisteredCapital(registeredCapital.getAttribute("title"));
+//            //注册资本
+//            DOMElement registeredCapital = (DOMElement) doc.findElement(By.className("tyc-num lh24")).getParent();
+//            org.setRegisteredCapital(registeredCapital.getAttribute("title"));
 
             List<DOMElement> tables = baseInfo.findElements(By.tagName("table"));
 
@@ -711,7 +710,10 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                                     } else if ("行业".equals(tdTitle)) {
                                         org.setIndustryType(sTmp);
                                         logger.debug("industryType: " + sTmp);
-                                    } else if (!"注册时间".equals(tdTitle)) {
+                                    } else if ("注册资本".equals(tdTitle)) {
+                                        org.setRegisteredCapital(sTmp);
+                                        logger.debug("注册资本: " + sTmp);
+                                    }else if (!"注册时间".equals(tdTitle)) {
                                         if ("公司类型".equals(tdTitle)) {
                                             org.setOrgType(getOrgType(sTmp));
                                             logger.debug("orgType: " + sTmp);

@@ -11,7 +11,7 @@ public class Org {
     private String legalPerson;
     private String registeredCapital;
     private Boolean hasContact;
-    private String employeeId;
+    private Long employeeId;
 
     public Long getId() {
         return id;
@@ -53,11 +53,11 @@ public class Org {
         this.hasContact = hasContact;
     }
 
-    public String getEmployeeId() {
+    public Long getEmployeeId() {
         return employeeId;
     }
 
-    public void setEmployeeId(String employeeId) {
+    public void setEmployeeId(Long employeeId) {
         this.employeeId = employeeId;
     }
 }

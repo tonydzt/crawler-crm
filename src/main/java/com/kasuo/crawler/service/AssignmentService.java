@@ -93,7 +93,7 @@ public class AssignmentService {
                 assignment.setHasTel(contact.hasTel);
 
                 if (org.getEmployeeId() != null) {
-                    Employee employee = employeeDao.find(org.getEmployeeId());
+                    Employee employee = employeeDao.find(org.getEmployeeId() == null ? null : org.getEmployeeId().toString());
                     assignment.setAgain(true);
                     assignment.setAssignmentName(employee.getName());
                 } else {

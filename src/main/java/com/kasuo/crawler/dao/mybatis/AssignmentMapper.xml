@@ -29,7 +29,7 @@
     </select>
 
     <insert id="insert" parameterType="com.kasuo.crawler.domain.Assignment" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO
+        INSERT ignore INTO
             assignment (org_id, applicant, contact, address, trademark, registration_no, `date`, category, assignment_name, legal_person, is_again)
         VALUES
         (#{orgId}, #{applicant}, #{contact}, #{address}, #{trademark}, #{registrationNo}, #{date}, #{category}, #{assignmentName}, #{legalPerson}, #{isAgain})

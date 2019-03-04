@@ -16,7 +16,7 @@
     </insert>
 
     <insert id="batchInsert" parameterType="java.util.List">
-        INSERT INTO mobile (org_id, mobile_no) VALUES
+        INSERT ignore INTO mobile (org_id, mobile_no) VALUES
         <foreach collection="list" item="item" index="index" separator=",">
             (#{item.orgId}, #{item.mobileNo})
         </foreach>

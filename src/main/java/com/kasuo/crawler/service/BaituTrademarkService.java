@@ -95,6 +95,9 @@ public class BaituTrademarkService {
                 .collect(Collectors.toList());
 
         if (files.size() > 0) {
+
+            logger.info("start to parse excel, fileSize: {}", files.size());
+
             CountDownLatch countDownLatch = new CountDownLatch(files.size());
             for (File file : files) {
                 threadPoolTaskExecutor.submit(() -> {
@@ -116,6 +119,8 @@ public class BaituTrademarkService {
     }
 
     private void parse(File file) {
+
+        logger.info("start to parse excel File, fileName: {}", file.getName());
 
         ExcelStatus excelStatus = excelStatusDao.findFile(file.getName(), file.getParent());
 

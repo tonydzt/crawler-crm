@@ -567,13 +567,13 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                 if ((!"ElementNode".equals(ele.getNodeType().name())) || (!"DIV".equals(ele.getNodeName()))) {
                     break;
                 }
-                List<DOMElement> divs = ele.findElements(By.tagName("div"));
+                List<DOMElement> divs = ele.findElements(By.className("in-block"));
                 for (DOMElement div : divs) {
                     List<DOMElement> spans = div.findElements(By.tagName("span"));
                     if ((spans == null) || (spans.size() == 0)) {
                         logger.warn("NOT FOUND .company-header-block>.detail>.f0 div span: " + queryOrgName);
                         logger.error("******************************************* ERROR html *******************************************");
-                        logger.error(doc.getDocumentElement().getInnerHTML());
+                        logger.error(div.getInnerHTML());
                         throw new DOMParseException();
                     }
 
@@ -588,55 +588,45 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                         }
                         logger.debug("总机: " + infoTel);
 
-
                         if (spans.size() > 2) {
-                            for (int i = 2; i < spans.size(); i++) {
-                                span = spans.get(i);
-                                List<DOMElement> scripts = div.findElements(By.tagName("script"));
-                                if ((scripts != null) && (scripts.size() > 0)) {
-                                    DOMElement script = scripts.get(0);
+                            DOMElement hiddenTel = div.findElement(By.tagName("script"));
+                            Gson gson = new Gson();
+                            Type type = new TypeToken<List<String>>() {
+                            }.getType();
 
-                                    Gson gson = new Gson();
-                                    Type type = new TypeToken<List<String>>() {}.getType();
-                                    List<String> tels = gson.fromJson(script.getInnerText(), type);
-                                    for (String tel : tels) {
-                                        infoTel = StringTool.trimTel(tel);
-                                        if ((infoTel != null) && (!"".equals(infoTel)) && (infoTel.length() > 5)) {
-                                            contact = new Contact("总机");
-                                            contact.setTel(infoTel);
-                                            org.setContacts(mergeContact(contact, org.getContacts()));
-                                        }
-                                    }
+                            logger.info("hiddenTel is {}", hiddenTel.getInnerText());
+
+                            List<String> tels = gson.fromJson(hiddenTel.getInnerText(), type);
+                            for (String tel : tels) {
+                                infoTel = StringTool.trimTel(tel);
+                                if ((infoTel != null) && (!"".equals(infoTel)) && (infoTel.length() > 5)) {
+                                    contact = new Contact("总机");
+                                    contact.setTel(infoTel);
+                                    org.setContacts(mergeContact(contact, org.getContacts()));
                                 }
                             }
                         }
                     } else if (span.getInnerText().trim().startsWith("邮箱")) {
-                        String email = StringTool.trimAll(((DOMElement) spans.get(1)).getInnerText());
+                        String email = StringTool.trimAll(spans.get(1).getInnerText());
                         if ((email != null) && (email.contains("@"))) {
                             contact = new Contact("总机");
                             contact.setEmail(email.toLowerCase());
                             org.setContacts(mergeContact(contact, org.getContacts()));
                         }
 
-
                         if (spans.size() > 2) {
-                            for (int i = 2; i < spans.size(); i++) {
-                                span = spans.get(i);
-                                List<DOMElement> scripts = div.findElements(By.tagName("script"));
-                                if ((scripts != null) && (scripts.size() > 0)) {
-                                    DOMElement script = scripts.get(0);
+                            DOMElement hiddenEmail = div.findElement(By.tagName("script"));
 
-                                    Gson gson = new Gson();
-                                    Type type = new TypeToken<List<String>>() {}.getType();
-                                    List<String> mails = gson.fromJson(script.getInnerText(), type);
-                                    for (String mail : mails) {
-                                        email = StringTool.trimAll(mail);
-                                        if ((email != null) && (email.contains("@"))) {
-                                            contact = new Contact("总机");
-                                            contact.setEmail(email.toLowerCase());
-                                            org.setContacts(mergeContact(contact, org.getContacts()));
-                                        }
-                                    }
+                            Gson gson = new Gson();
+                            Type type = new TypeToken<List<String>>() {
+                            }.getType();
+                            List<String> mails = gson.fromJson(hiddenEmail.getInnerText(), type);
+                            for (String mail : mails) {
+                                email = StringTool.trimAll(mail);
+                                if ((email != null) && (email.contains("@"))) {
+                                    contact = new Contact("总机");
+                                    contact.setEmail(email.toLowerCase());
+                                    org.setContacts(mergeContact(contact, org.getContacts()));
                                 }
                             }
                         }

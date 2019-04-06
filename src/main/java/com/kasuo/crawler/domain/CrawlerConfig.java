@@ -6,8 +6,12 @@ package com.kasuo.crawler.domain;
  */
 public class CrawlerConfig {
 
+    public static final String CRAWLER_TYPE = "crawler_type";
     public static final String CRAWLER_DATE = "crawler_date";
     public static final String CRAWLER_NUM = "crawler_num";
+
+    public static final String CRAWLER_TYPE_HISTORY = "history";
+    public static final String CRAWLER_TYPE_PARSE = "parse";
 
     private Long id;
     private String key;

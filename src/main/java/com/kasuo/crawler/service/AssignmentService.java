@@ -1,12 +1,16 @@
 package com.kasuo.crawler.service;
 
+import com.kasuo.crawler.common.HttpResult;
 import com.kasuo.crawler.common.Pagable;
 import com.kasuo.crawler.config.ExcelConfig;
+import com.kasuo.crawler.config.HttpConfig;
 import com.kasuo.crawler.dao.TrademarkDao;
 import com.kasuo.crawler.dao.mybatis.*;
 import com.kasuo.crawler.domain.*;
 import com.kasuo.crawler.domain.vo.AssignVo;
 import com.kasuo.crawler.domain.vo.TrademarkExportVO;
+import com.kasuo.crawler.util.HttpUtils;
+import com.kasuo.crawler.util.JsonUtils;
 import com.kasuo.crawler.util.excel.ExcelData;
 import com.kasuo.crawler.util.excel.ExportExcelUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -18,10 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.net.HttpURLConnection;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -124,11 +126,35 @@ public class AssignmentService {
             int count = assignmentDao.countByDate(date);
             int max = Integer.parseInt(maxStr);
             if (count >= max) {
-                String nextDate = excelStatusDao.findNextDate(date);
+                String nextDate = findNextDate(date);
                 if (!StringUtils.isEmpty(nextDate)) {
                     crawlerConfigService.saveCrawlerDate(nextDate);
                 }
             }
+        }
+    }
+
+    private String findNextDate(String date) {
+        String crawlerType = crawlerConfigService.getValueBykey(CrawlerConfig.CRAWLER_TYPE);
+        if (StringUtils.isEmpty(crawlerType) || CrawlerConfig.CRAWLER_TYPE_PARSE.equals(crawlerType)) {
+            return findNextDateRemote(date);
+        } else {
+            return excelStatusDao.findNextDate(date);
+        }
+    }
+
+    private String findNextDateRemote(String date) {
+
+        Map<String,String> params = new HashMap<>();
+        params.put("date", date);
+
+        HttpResult httpResult = HttpUtils.httpGet(HttpConfig.TRADEMARK_HOST + "/v1/trademark/getNextDate", params);
+
+        if (httpResult != null && httpResult.getResponseCode() == HttpURLConnection.HTTP_OK) {
+            return httpResult.getResult();
+        } else {
+            logger.error("findNextDateRemote http request failed! params: {}, httpResult: {}", params, httpResult);
+            return "";
         }
     }
 

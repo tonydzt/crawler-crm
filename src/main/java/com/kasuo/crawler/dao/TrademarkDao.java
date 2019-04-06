@@ -1,9 +1,13 @@
 package com.kasuo.crawler.dao;
 
+import com.kasuo.crawler.common.HttpResult;
+import com.kasuo.crawler.config.HttpConfig;
 import com.kasuo.crawler.dao.mybatis.CrawlerConfigDao;
 import com.kasuo.crawler.domain.CrawlerConfig;
 import com.kasuo.crawler.domain.Trademark;
 import com.kasuo.crawler.domain.vo.TrademarkExportVO;
+import com.kasuo.crawler.util.HttpUtils;
+import com.kasuo.crawler.util.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,8 +17,11 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
+import java.net.HttpURLConnection;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author douzhitong
@@ -62,6 +69,37 @@ public class TrademarkDao {
 
     public List<Trademark> findUnCraw() {
 
+        CrawlerConfig crawlerTypeConfig = crawlerConfigDao.findByKey(CrawlerConfig.CRAWLER_TYPE);
+        List<Trademark> trademarkList;
+
+        if (crawlerTypeConfig == null || crawlerTypeConfig.getValue().equals(CrawlerConfig.CRAWLER_TYPE_PARSE)) {
+            trademarkList = findUnCrawRemote();
+        } else {
+            trademarkList = findUnCrawLocal();
+        }
+
+        return trademarkList;
+    }
+
+    private List<Trademark> findUnCrawRemote() {
+        CrawlerConfig crawlerConfig = crawlerConfigDao.findByKey(CrawlerConfig.CRAWLER_DATE);
+
+        Map<String,String> params = new HashMap<>();
+        params.put("date", crawlerConfig.getValue());
+        params.put("num", "10");
+
+        HttpResult httpResult = HttpUtils.httpGet(HttpConfig.TRADEMARK_HOST + "/v1/trademark/getList", params);
+
+        if (httpResult != null && httpResult.getResponseCode() == HttpURLConnection.HTTP_OK) {
+            return JsonUtils.decodeToList(httpResult.getResult(), Trademark.class);
+        } else {
+            logger.error("findUnCrawRemote http request failed! params: {}, httpResult: {}", params, httpResult);
+            return null;
+        }
+    }
+
+
+    private List<Trademark> findUnCrawLocal() {
         CrawlerConfig crawlerConfig = crawlerConfigDao.findByKey(CrawlerConfig.CRAWLER_DATE);
 
         String sql = "select * from trademark where craw_status = 0 " + (crawlerConfig == null ? "" : "and date = '" + crawlerConfig.getValue() + "'") + " limit 5";
@@ -70,8 +108,8 @@ public class TrademarkDao {
             return null;
         }
         String trademarkIds = trademarkList.stream()
-                    .map(trademark -> trademark.getId().toString())
-                    .reduce((a, b) -> a + "," + b).get();
+                .map(trademark -> trademark.getId().toString())
+                .reduce((a, b) -> a + "," + b).get();
         String updateSql = "update trademark set craw_status = 1 where id in (" + trademarkIds + ")";
         jdbcTemplate.update(updateSql);
 

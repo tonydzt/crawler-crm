@@ -5,6 +5,7 @@ import com.kasuo.crawler.config.HttpConfig;
 import com.kasuo.crawler.dao.mybatis.CrawlerConfigDao;
 import com.kasuo.crawler.domain.CrawlerConfig;
 import com.kasuo.crawler.domain.Trademark;
+import com.kasuo.crawler.domain.source.SourceUtil;
 import com.kasuo.crawler.domain.vo.TrademarkExportVO;
 import com.kasuo.crawler.util.HttpUtils;
 import com.kasuo.crawler.util.JsonUtils;
@@ -22,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author douzhitong
@@ -91,7 +93,19 @@ public class TrademarkDao {
         HttpResult httpResult = HttpUtils.httpGet(HttpConfig.TRADEMARK_HOST + "/v1/trademark/getList", params);
 
         if (httpResult != null && httpResult.getResponseCode() == HttpURLConnection.HTTP_OK) {
-            return JsonUtils.decodeToList(httpResult.getResult(), Trademark.class);
+            List<Trademark> trademarkList = JsonUtils.decodeToList(httpResult.getResult(), Trademark.class);
+
+            int size = trademarkList.size();
+
+            trademarkList = trademarkList.stream()
+                    .filter(trademark -> SourceUtil.checkValidSourceOrgName(trademark.getApplicant(), trademark.getAddress()))
+                    .collect(Collectors.toList());
+
+            if (size > 0 && CollectionUtils.isEmpty(trademarkList)) {
+                //都过滤掉了，重新获取
+                trademarkList = findUnCrawRemote();
+            }
+            return trademarkList;
         } else {
             logger.error("findUnCrawRemote http request failed! params: {}, httpResult: {}", params, httpResult);
             return null;

@@ -590,11 +590,17 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
 
                         if (spans.size() > 2) {
                             DOMElement hiddenTel = div.findElement(By.tagName("script"));
+                            if (hiddenTel == null) {
+                                hiddenTel = spans.get(2).findElement(By.className("script"));
+                            }
                             Gson gson = new Gson();
                             Type type = new TypeToken<List<String>>() {
                             }.getType();
 
-                            logger.info("hiddenTel is {}", hiddenTel.getInnerText());
+                            if (hiddenTel == null) {
+                                logger.info("div is {}, div html is {}", div.getInnerText(), div.getInnerHTML());
+                                continue;
+                            }
 
                             List<String> tels = gson.fromJson(hiddenTel.getInnerText(), type);
                             for (String tel : tels) {
@@ -616,6 +622,14 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
 
                         if (spans.size() > 2) {
                             DOMElement hiddenEmail = div.findElement(By.tagName("script"));
+                            if (hiddenEmail == null) {
+                                hiddenEmail = spans.get(2).findElement(By.className("script"));
+                            }
+
+                            if (hiddenEmail == null) {
+                                logger.info("div is {}, div html is {}", div.getInnerText(), div.getInnerHTML());
+                                continue;
+                            }
 
                             Gson gson = new Gson();
                             Type type = new TypeToken<List<String>>() {

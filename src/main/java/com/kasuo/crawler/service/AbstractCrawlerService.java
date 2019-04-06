@@ -631,20 +631,20 @@ public abstract class AbstractCrawlerService {
 
             boolean found;
             String newValue = "";
-            if ("北京中晶环境科技股份有限公司".equals(queryName)) {
+            if ("中晶环境科技股份有限公司".equals(queryName)) {
 
 
                 found = false;
                 newValue = "";
                 for (OrgHisName hisName : org.getOldNames()) {
                     newValue = newValue + hisName.getOrgName() + ", ";
-                    if ("北京中晶环境科技股份有限公司".equals(hisName.getOrgName())) {
+                    if ("中晶环境科技股份有限公司".equals(hisName.getOrgName())) {
                         found = true;
                         break;
                     }
                 }
                 if (!found) {
-                    logger.error("北京中晶环境科技股份有限公司: 没有找到历史名称！");
+                    logger.error("中晶环境科技股份有限公司: 没有找到历史名称！");
                     return false;
                 }
 
@@ -660,7 +660,7 @@ public abstract class AbstractCrawlerService {
                 }
                 found = checkVerifyDataTels(org.getContacts(), 3, 8);
                 if (!found) {
-                    logger.error("北京中晶环境科技股份有限公司: 电话号码不匹配！old=87237000,new=" + newValue);
+                    logger.error("中晶环境科技股份有限公司: 电话号码不匹配！old=87237000,new=" + newValue);
                     return false;
 
 
@@ -974,7 +974,7 @@ public abstract class AbstractCrawlerService {
 
         input = new SourceInput();
         input.setId("VERIFY");
-        input.setOrgName("北京中晶环境科技股份有限公司");
+        input.setOrgName("中晶环境科技股份有限公司");
         result.add(input);
 
         input = new SourceInput();

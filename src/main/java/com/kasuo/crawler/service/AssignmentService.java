@@ -160,16 +160,16 @@ public class AssignmentService {
 
     public void assign(String batchNo, Map<String, Object> assignMap) {
 
-        List<ExcelStatus> excelStatusList = excelStatusDao.findByPath(excelConfig.getRootPath() + batchNo);
+//        List<ExcelStatus> excelStatusList = excelStatusDao.findByPath(excelConfig.getRootPath() + batchNo);
 
-        if (excelStatusList == null || excelStatusList.size() == 0) {
-            logger.warn("assign failed, not found excelStatus. batchNo: {}", batchNo);
-            return;
-        }
-
-        List<String> excelStatusIdStrs = excelStatusList.stream()
-                .map(excelStatus -> excelStatus.getId().toString())
-                .collect(Collectors.toList());
+//        if (excelStatusList == null || excelStatusList.size() == 0) {
+//            logger.warn("assign failed, not found excelStatus. batchNo: {}", batchNo);
+//            return;
+//        }
+//
+//        List<String> excelStatusIdStrs = excelStatusList.stream()
+//                .map(excelStatus -> excelStatus.getId().toString())
+//                .collect(Collectors.toList());
 
         for (Map.Entry<String, Object> assignEntry : assignMap.entrySet()) {
             String name = assignEntry.getKey();
@@ -177,7 +177,7 @@ public class AssignmentService {
             Employee employee = employeeDao.findByName(name);
             List<TrademarkExportVO> dataList = new ArrayList<>();
             List<String> trademarkIds = new ArrayList<>();
-            List<TrademarkExportVO> trademarkExportVOList = trademarkDao.findOldCustomerNewChance(employee.getId(), excelStatusIdStrs);
+            List<TrademarkExportVO> trademarkExportVOList = trademarkDao.findOldCustomerNewChance(employee.getId(), batchNo);
 
             if (trademarkExportVOList != null && trademarkExportVOList.size() > 0) {
                 dataList.addAll(trademarkExportVOList);
@@ -186,7 +186,7 @@ public class AssignmentService {
             }
 
             if (num > 0) {
-                List<TrademarkExportVO> newTrademarkExportVOList = trademarkDao.findNewCustomerChance(excelStatusIdStrs, 200);
+                List<TrademarkExportVO> newTrademarkExportVOList = trademarkDao.findNewCustomerChance(batchNo, 200);
                 if (newTrademarkExportVOList != null && newTrademarkExportVOList.size() > 0) {
                     List<TrademarkExportVO> combineTrademarkExportVOList = combine(newTrademarkExportVOList, num, trademarkIds, name);
                     dataList.addAll(combineTrademarkExportVOList);

@@ -160,21 +160,16 @@ public class AssignmentService {
 
     public void assign(String batchNo, Map<String, Object> assignMap) {
 
-//        List<ExcelStatus> excelStatusList = excelStatusDao.findByPath(excelConfig.getRootPath() + batchNo);
-
-//        if (excelStatusList == null || excelStatusList.size() == 0) {
-//            logger.warn("assign failed, not found excelStatus. batchNo: {}", batchNo);
-//            return;
-//        }
-//
-//        List<String> excelStatusIdStrs = excelStatusList.stream()
-//                .map(excelStatus -> excelStatus.getId().toString())
-//                .collect(Collectors.toList());
-
         for (Map.Entry<String, Object> assignEntry : assignMap.entrySet()) {
             String name = assignEntry.getKey();
             int num = Integer.parseInt(assignEntry.getValue() + "");
             Employee employee = employeeDao.findByName(name);
+
+            if (num <= 0) {
+                logger.info("{} do not assign.", employee.getName());
+                continue;
+            }
+
             List<TrademarkExportVO> dataList = new ArrayList<>();
             List<String> trademarkIds = new ArrayList<>();
             List<TrademarkExportVO> trademarkExportVOList = trademarkDao.findOldCustomerNewChance(employee.getId(), batchNo);

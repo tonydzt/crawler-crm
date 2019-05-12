@@ -11,7 +11,7 @@ public class TrademarkExportVO {
 
     private Long id;
     private Long orgId;
-    private Long category;
+    private String category;
     private String applicant;
     private String legalPerson;
     private String contact;
@@ -38,11 +38,11 @@ public class TrademarkExportVO {
         this.orgId = orgId;
     }
 
-    public Long getCategory() {
+    public String getCategory() {
         return category;
     }
 
-    public void setCategory(Long category) {
+    public void setCategory(String category) {
         this.category = category;
     }
 

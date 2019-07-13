@@ -175,9 +175,11 @@ public class AssignmentService {
             List<TrademarkExportVO> trademarkExportVOList = trademarkDao.findOldCustomerNewChance(employee.getId(), batchNo);
 
             if (trademarkExportVOList != null && trademarkExportVOList.size() > 0) {
-                dataList.addAll(trademarkExportVOList);
-                num = num - trademarkExportVOList.size();
-                trademarkIds.addAll(trademarkExportVOList.stream().map(a -> a.getId().toString()).collect(Collectors.toList()));
+                //对老客户新机会也做一次按公司合并，去重
+                List<TrademarkExportVO> combineList = combine(trademarkExportVOList, num, trademarkIds, name);
+                dataList.addAll(combineList);
+                num = num - combineList.size();
+                trademarkIds.addAll(combineList.stream().map(a -> a.getId().toString()).collect(Collectors.toList()));
             }
 
             if (num > 0) {

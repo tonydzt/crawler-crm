@@ -12,10 +12,10 @@
 
     <appender name="fileAppender"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>E:\software\Cygwin\logs\crawler.log</file>
+        <file>D:\software\Cygwin\logs\crawler.log</file>
         <rollingPolicy
                 class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>E:\software\Cygwin\logs\crawler.log.%d{yyyyMMdd}
+            <fileNamePattern>D:\software\Cygwin\logs\crawler.log.%d{yyyyMMdd}
             </fileNamePattern>
         </rollingPolicy>
         <encoder charset="UTF-8">

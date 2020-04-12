@@ -1,3 +1,7 @@
+CREATE SCHEMA yituo;
+
+use yituo;
+
 -- auto-generated definition
 CREATE TABLE assignment
 (

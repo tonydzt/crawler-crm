@@ -23,6 +23,7 @@ import java.lang.reflect.Type;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -373,8 +374,8 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                     List<DOMElement> spans = col.findElements(By.tagName("span"));
                     if ((spans != null) && (spans.size() != 0)) {
                         Contact contact;
-                        if (spans.get(0).getInnerText().trim().startsWith("联系电话")) {
-                            infoTel = SourceUtil.trimTel(spans.get(1).getInnerText().trim());
+                        if (spans.get(0).getInnerText().trim().startsWith("电话")) {
+                            infoTel = SourceUtil.trimTel(spans.get(1).findElements(By.tagName("span")).get(0).getInnerText().trim());
                             if ((infoTel != null) && (!"".equals(infoTel)) && (infoTel.length() > 5)) {
                                 contact = new Contact("总机");
                                 contact.setTel(infoTel);
@@ -438,9 +439,9 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
             org.setOrgName(orgName);
             logger.debug("找到的orgName: " + orgName + ",查询的orgName：" + queryOrgName);
 
-            DOMElement header = item.findElement(By.className("header"));
+            DOMElement header = item.findElement(By.className("content"));
             if (header == null) {
-                logger.warn("NOT FOUND .header: " + queryOrgName);
+                logger.warn("NOT FOUND .content: " + queryOrgName);
                 logger.warn("******************************************* ERROR html *******************************************");
                 logger.warn(doc.getDocumentElement().getInnerHTML());
                 throw new DOMParseException();
@@ -493,15 +494,15 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                             org.setCapitalUnit(getCurrencyType(capitalUnit));
                             logger.debug("注册资本：" + org.getRegCapital() + org.getCapitalUnit().getId());
                         }
-                    } else if (s.startsWith("注册时间：")) {
+                    } else if (s.startsWith("成立日期：")) {
                         DOMElement span = title.findElement(By.tagName("span"));
                         if (span == null) {
-                            logger.warn("NOT FOUND .title>span 注册时间: " + queryOrgName);
+                            logger.warn("NOT FOUND .title>span 成立日期: " + queryOrgName);
                             logger.warn("******************************************* ERROR html *******************************************");
                             logger.warn(doc.getDocumentElement().getInnerHTML());
                         } else {
                             org.setRegDate(DateTool.getDate(span.getInnerText().trim()));
-                            logger.debug("注册时间：" + DateTool.getStringDate(org.getRegDate()));
+                            logger.debug("成立日期：" + DateTool.getStringDate(org.getRegDate()));
                         }
                     }
                 }
@@ -594,7 +595,7 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                                 hiddenTel = spans.get(2).findElement(By.className("script"));
                             }
                             Gson gson = new Gson();
-                            Type type = new TypeToken<List<String>>() {
+                            Type type = new TypeToken<List<Map<String,Object>>>() {
                             }.getType();
 
                             if (hiddenTel == null) {
@@ -602,9 +603,10 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                                 continue;
                             }
 
-                            List<String> tels = gson.fromJson(hiddenTel.getInnerText(), type);
-                            for (String tel : tels) {
-                                infoTel = StringTool.trimTel(tel);
+                            System.out.println(hiddenTel.getInnerText());
+                            List<Map<String,Object>> tels = gson.fromJson(hiddenTel.getInnerText(), type);
+                            for (Map<String,Object> tel : tels) {
+                                infoTel = StringTool.trimTel(tel.get("phoneNumber").toString());
                                 if ((infoTel != null) && (!"".equals(infoTel)) && (infoTel.length() > 5)) {
                                     contact = new Contact("总机");
                                     contact.setTel(infoTel);
@@ -654,7 +656,7 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                         logger.debug("网址: " + webUrl);
                     } else if (span.getInnerText().trim().startsWith("地址")) {
                         if (spans.size() > 1) {
-                            address = StringTool.trimAddress(spans.get(1).getAttribute("title"));
+                            address = StringTool.trimAddress(span.getNextSibling().findElements(By.tagName("div")).get(0).getInnerText());
                             if ("".equals(address)) {
                                 address = spans.get(1).getInnerText();
                             }
@@ -682,12 +684,8 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
 
             //法人
             DOMElement legalPerson = doc.findElement(By.className("humancompany"));
-            DOMElement legalPersonInner = legalPerson.findElement(By.className("link-click"));
+            DOMElement legalPersonInner = legalPerson.findElement(By.className("name")).findElement(By.className("link-click"));
             org.setLegalPerson(legalPersonInner.getAttribute("title"));
-
-//            //注册资本
-//            DOMElement registeredCapital = (DOMElement) doc.findElement(By.className("tyc-num lh24")).getParent();
-//            org.setRegisteredCapital(registeredCapital.getAttribute("title"));
 
             List<DOMElement> tables = baseInfo.findElements(By.tagName("table"));
 
@@ -717,7 +715,7 @@ public class CrawlerOrgTYCService extends AbstractCrawlerService {
                                     } else if ("注册资本".equals(tdTitle)) {
                                         org.setRegisteredCapital(sTmp);
                                         logger.debug("注册资本: " + sTmp);
-                                    }else if (!"注册时间".equals(tdTitle)) {
+                                    }else if (!"成立日期".equals(tdTitle)) {
                                         if ("公司类型".equals(tdTitle)) {
                                             org.setOrgType(getOrgType(sTmp));
                                             logger.debug("orgType: " + sTmp);

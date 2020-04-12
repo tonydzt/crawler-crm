@@ -20,6 +20,7 @@ import com.kasuo.crawler.service.crawler.OrgService;
 import com.kasuo.crawler.util.*;
 import com.teamdev.jxbrowser.chromium.Browser;
 import com.teamdev.jxbrowser.chromium.BrowserKeyEvent;
+import com.teamdev.jxbrowser.chromium.JSObject;
 import com.teamdev.jxbrowser.chromium.TabFactory;
 import com.teamdev.jxbrowser.chromium.dom.By;
 import com.teamdev.jxbrowser.chromium.dom.DOMDocument;
@@ -64,6 +65,7 @@ public abstract class AbstractCrawlerService {
 
     protected boolean fetchDataStatus = false;
     protected boolean fetchDataTestStatus = false;
+    protected boolean fetchReboot = false;
 
     protected boolean loginPage = false;
     protected String todo = "";
@@ -211,6 +213,7 @@ public abstract class AbstractCrawlerService {
             todo = "";
             List<SourceInput> orgList;
             boolean needReboot = false;
+            fetchReboot = false;
 
             while (fetchDataStatus) {
                 try {
@@ -244,11 +247,6 @@ public abstract class AbstractCrawlerService {
                                 logger.debug("verifyData = true,now start crawl verifyData...");
                             }
 
-                            //当没有新数据可抓取时，抓取历史的未找到的公司（例如timeOut的，需要配合timeOut时保存Org，但是现在没保存，所以此处先注释掉）
-//                            if ((orgList == null || orgList.size() == 0) && isKeepSessionTime()) {
-//                                orgList = distributeNoFoundData();
-//                            }
-
                             if ((orgList == null) || (orgList.size() == 0)) {
                                 logger.debug("No data need to craw, sleep..");
                                 Thread.sleep(60000L);
@@ -266,6 +264,7 @@ public abstract class AbstractCrawlerService {
                                 if ((!verifyData) && (crawlCurrentNums > crawlerMaxRecords)) {
                                     logger.warn("HAS FETCH " + crawlCurrentNums + " data,now need to REBOOT!");
                                     needReboot = true;
+                                    fetchReboot = true;
                                     fetchDataStatus = false;
 
                                     if (checkVerifyCodeThread != null) {
@@ -1144,6 +1143,25 @@ public abstract class AbstractCrawlerService {
         }
     }
 
+    protected void handleLoginPage(Browser browser, boolean callByButton) {
+        if (!callByButton) {
+            this.loginPage = true;
+            ++this.loginNums;
+            logger.warn("********************************* 出现登录页 " + this.loginNums + " 次 *********************************");
+            showDebugInfoTodo("要求登录");
+            tabFactory.selectTab(browser);
+            this.showLoginInfo(browser);
+            JSObject window = (JSObject)browser.executeJavaScriptAndReturnValue("window");
+            LoginService login = new LoginService();
+            login.browser = browser;
+            login.crawler = tabFactory.crawlerOrgService;
+            window.setProperty("java", login);
+            if (this.fetchDataStatus) {
+                this.sendNotice("2");
+            }
+        }
+    }
+
     /**
      * 数据到达每日上限，设置declineDate，第二天会重新把declineDate置为null
      */
@@ -1230,6 +1248,30 @@ public abstract class AbstractCrawlerService {
 
     protected abstract void fetchDetailInfo(Browser paramBrowser, Org paramOrg);
 
+    public void showLoginInfo(Browser browser) {
+        try {
+            logger.debug("showLoginInfo");
+            DOMDocument doc = browser.getDocument();
+            DOMElement statusDiv = doc.findElement(By.id("tomHomeLoginBtn"));
+            if (statusDiv == null) {
+                logger.debug("NOT found tomHomeLoginBtn");
+                DOMNode body = doc.findElement(By.tagName("body"));
+                statusDiv = doc.createElement("div");
+                body.appendChild(statusDiv);
+                statusDiv.setAttribute("id", "tomLoginInfo");
+                statusDiv.setAttribute("style", "display:block;position:absolute;font-size:20px;z-index:9999999;left:60px;top:120px;");
+                String title = "<div style='font-size:30px;font-weight:bold;color:#EEA236;margin-bottom:15px;'>要求登录</div>";
+                String status = "<button id='tomSearchLoginBtn' type='button' onclick='window.java.login();' style='padding:6px 10px;'>输入密码</button>";
+                statusDiv.setInnerHTML(title + status);
+            } else {
+                logger.debug("found tomHomeLoginBtn,show it");
+                String js = "$('#tomHomeLoginBtn').css('visibility','visible')";
+                browser.executeJavaScript(js);
+            }
+        } catch (Throwable var7) {
+            ;
+        }
+    }
 
     private void showDebugInfoTodo(String msg) {
         try {
@@ -1302,51 +1344,60 @@ public abstract class AbstractCrawlerService {
                 return;
             }
 
+            logger.debug("showDebugInfo");
             DOMDocument doc = browser.getDocument();
-
             String status = null;
             String count = null;
-
-            if (fetchDataStatus) {
+            if (this.fetchDataStatus) {
                 status = "正在检索...<br>";
+            } else if (fetchReboot) {
+                status = "正在重启检索<br>";
             } else {
                 status = "已停止检索<br>";
             }
-            status = status + "<span style='font-size:20px;font-weight:400;'>" + crawlerUser + "<br>";
-            status = status + crawlerPwd + "</span>";
 
+            status = status + "<span style='font-size:20px;font-weight:400;'>" + this.crawlerUser + "<br>";
+            status = status + crawlerPwd;
+            status = status + "<button id='tomHomeLoginBtn' type='button' onclick='window.java.login();' style='visibility:hidden;padding:6px 10px;'>输入密码</button>";
+            status = status + "</span>";
             DOMElement statusDiv = doc.findElement(By.id("tomDebugStatus"));
             if (statusDiv == null) {
-                createDebugInfo();
+                this.createDebugInfo();
                 statusDiv = doc.findElement(By.id("tomDebugStatus"));
             }
-            statusDiv.setInnerHTML(status);
 
+            statusDiv.setInnerHTML(status);
             DOMElement todoDiv = doc.findElement(By.id("tomDebugTodo"));
             if (todoDiv != null) {
-                todoDiv.setInnerHTML(todo);
+                todoDiv.setInnerHTML(this.todo);
             }
-            String verifyTime = "";
-            if (verifyCodePrevTime != 0L) {
-                verifyTime = DateTool.getStringDateTime(verifyCodePrevTime);
-            }
-            if (crawlStartTime != 0L) {
-                count = "开始时间：" + DateTool.getStringDateTime(crawlStartTime) + "<br>检索耗时：" + DateTool.secToTime((System.currentTimeMillis() - crawlStartTime) / 1000L) + "<br>";
-                count = count + "重启次数：" + crawlRebootNums + "<br>验证出现：" + verifyTime + "<br>验证码数：" + verifyCodeNums + "<br>登录页数：" + loginNums + "<br>";
-            } else {
-                count = "开始时间：<br>检索耗时：<br>重启次数：<br>验证出现：<br>验证码数：" + verifyCodeNums + "<br>登录页数：" + loginNums + "<br>";
-            }
-            count = count + "服务故障：" + crawlServerErrorNums + "<br>网络故障：" + crawlNetErrorNums + "<br>" + "检索超时：" + crawlTimeoutErrorNums + "<br>";
-            count = count + "已检索数：" + (crawlSuccessNums + crawlNoFoundNums + crawlErrorNums) + "<br>检索成功：" + crawlSuccessNums + "<br>检索失败：" + crawlNoFoundNums + "<br>";
-            count = count + "手机号码：" + crawlPhoneNums + "<br>固定电话：" + crawlTelNums + "<br>无号码数：" + crawlNoneNums;
 
+            String verifyTime = "";
+            if (this.verifyCodePrevTime != 0L) {
+                verifyTime = DateTool.getStringDateTime(this.verifyCodePrevTime);
+            }
+
+            if (this.crawlStartTime != 0L) {
+                count = "开始时间：" + DateTool.getStringDateTime(this.crawlStartTime) + "<br>检索耗时：" + DateTool.secToTime((System.currentTimeMillis() - this.crawlStartTime) / 1000L) + "<br>";
+                count = count + "重启次数：" + this.crawlRebootNums + "<br>验证出现：" + verifyTime + "<br>验证码数：" + this.verifyCodeNums + "<br>登录页数：" + this.loginNums + "<br>";
+            } else {
+                count = "开始时间：<br>检索耗时：<br>重启次数：<br>验证出现：<br>验证码数：" + this.verifyCodeNums + "<br>登录页数：" + this.loginNums + "<br>";
+            }
+
+            count = count + "服务故障：" + this.crawlServerErrorNums + "<br>网络故障：" + this.crawlNetErrorNums + "<br>" + "检索超时：" + this.crawlTimeoutErrorNums + "<br>";
+            count = count + "已检索数：" + (this.crawlSuccessNums + this.crawlNoFoundNums + this.crawlErrorNums) + "<br>检索成功：" + this.crawlSuccessNums + "<br>检索失败：" + this.crawlNoFoundNums + "<br>";
+            count = count + "手机号码：" + this.crawlPhoneNums + "<br>固定电话：" + this.crawlTelNums + "<br>无号码数：" + this.crawlNoneNums;
             DOMElement countDiv = doc.findElement(By.id("tomDebugCount"));
             countDiv.setInnerHTML(count);
-        } catch (Throwable localThrowable) {
+        } catch (Throwable var9) {
+            ;
         }
     }
 
     public void handleOrgInfo(Browser browser, FinishLoadingEvent event) {
+
+        String js = "$('#tomHomeLoginBtn').css('visibility','hidden')";
+        browser.executeJavaScript(js);
         loginPage = false;
 
         if ((event.isMainFrame()) && (isLoginPage(browser))) {
@@ -1594,7 +1645,6 @@ public abstract class AbstractCrawlerService {
         }
     }
 
-
     protected static void forwardKeyEvent(Browser browser, String s) {
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
@@ -1701,7 +1751,6 @@ public abstract class AbstractCrawlerService {
             }
         }
     }
-
 
     protected List<Contact> mergeContact(Contact c1, List<Contact> oldList) {
         List<Contact> addList = new ArrayList();

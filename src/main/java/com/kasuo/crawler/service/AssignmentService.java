@@ -158,7 +158,7 @@ public class AssignmentService {
         }
     }
 
-    public void assign(String batchNo, Map<String, Object> assignMap) {
+    public void assign(String batchNo, String province, Map<String, Object> assignMap) {
 
         for (Map.Entry<String, Object> assignEntry : assignMap.entrySet()) {
             String name = assignEntry.getKey();
@@ -172,7 +172,7 @@ public class AssignmentService {
 
             List<TrademarkExportVO> dataList = new ArrayList<>();
             List<String> trademarkIds = new ArrayList<>();
-            List<TrademarkExportVO> trademarkExportVOList = trademarkDao.findOldCustomerNewChance(employee.getId(), batchNo);
+            List<TrademarkExportVO> trademarkExportVOList = trademarkDao.findOldCustomerNewChance(employee.getId(), batchNo, province);
 
             if (trademarkExportVOList != null && trademarkExportVOList.size() > 0) {
                 //对老客户新机会也做一次按公司合并，去重
@@ -183,7 +183,7 @@ public class AssignmentService {
             }
 
             if (num > 0) {
-                List<TrademarkExportVO> newTrademarkExportVOList = trademarkDao.findNewCustomerChance(batchNo, 200);
+                List<TrademarkExportVO> newTrademarkExportVOList = trademarkDao.findNewCustomerChance(batchNo, 200, province);
                 if (newTrademarkExportVOList != null && newTrademarkExportVOList.size() > 0) {
                     List<TrademarkExportVO> combineTrademarkExportVOList = combine(newTrademarkExportVOList, num, trademarkIds, name);
                     dataList.addAll(combineTrademarkExportVOList);
@@ -279,12 +279,12 @@ public class AssignmentService {
         return returnList;
     }
 
-    public Pagable<AssignVo> getAssignPage(Integer offset) {
+    public Pagable<AssignVo> getAssignPage(String province, Integer offset) {
 
         Pagable<AssignVo> pagable = new Pagable<>();
         Integer totalNum = assignmentDao.countGroup();
         Integer pageNum = 10;
-        List<AssignVo> list = assignmentDao.findPage(offset, pageNum);
+        List<AssignVo> list = assignmentDao.findPage(province, offset, pageNum);
 
         pagable.setTotal(totalNum);
         pagable.setPageNo(offset / pageNum);

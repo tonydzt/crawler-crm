@@ -17,6 +17,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.net.HttpURLConnection;
 import java.util.*;
@@ -73,6 +74,9 @@ public class TrademarkDao {
 
         if (crawlerTypeConfig == null || crawlerTypeConfig.getValue().equals(CrawlerConfig.CRAWLER_TYPE_PARSE)) {
             trademarkList = findUnCrawRemote();
+            if (CollectionUtils.isEmpty(trademarkList)) {
+                trademarkList = findUnCrawLocal();
+            }
         } else {
             trademarkList = findUnCrawLocal();
         }
@@ -127,23 +131,25 @@ public class TrademarkDao {
         return trademarkList;
     }
 
-    public List<TrademarkExportVO> findOldCustomerNewChance(Long employeeId, String date) {
+    public List<TrademarkExportVO> findOldCustomerNewChance(Long employeeId, String date, String province) {
         String sql = "SELECT min(id) id, group_concat(category) category, min(org_id) org_id, min(applicant) applicant, min(legal_person) legal_person, min(address) address, trademark, min(registration_no), min(registration_no) registration_no, min(date) date, min(is_again) is_again from " +
                 "(SELECT trademark.id, trademark.category, trademark.org_id, applicant, legal_person, address, trademark, registration_no, date, is_again FROM trademark LEFT JOIN org " +
                 " ON trademark.org_id = org.id AND trademark.is_again = 1 AND trademark.employee_id IS NULL AND trademark.date = '" + date + "'" +
-                " WHERE org.has_contact = 1 AND org.employee_id = ?) n group by trademark";
-//                " WHERE org.has_contact = 1 AND org.employee_id = ? and trademark.address like '%山东%'";
+                " WHERE org.has_contact = 1 AND org.employee_id = ?" +
+                (StringUtils.isEmpty(province) ? "" : " and trademark.address like '%" + province + "%'") +
+                ") n group by trademark";
 
         logger.info("findOldCustomerNewChance sql: {}, employeeId: {}", sql, employeeId);
         return jdbcTemplate.query(sql, new Object[]{employeeId}, getExportRowMapper());
     }
 
-    public List<TrademarkExportVO> findNewCustomerChance(String date, Integer num) {
+    public List<TrademarkExportVO> findNewCustomerChance(String date, Integer num, String province) {
         String sql = "SELECT min(id) id, group_concat(category) category, min(org_id) org_id, min(applicant) applicant, min(legal_person) legal_person, min(address) address, trademark, min(registration_no), min(registration_no) registration_no, min(date) date, min(is_again) is_again from " +
                 "(SELECT trademark.id, trademark.category, trademark.org_id, applicant, legal_person, address, trademark trademark, registration_no, date, 0 is_again FROM trademark LEFT JOIN org" +
                 " ON trademark.org_id = org.id AND trademark.employee_id IS NULL AND trademark.date = '" + date + "'" +
-                " WHERE org.has_contact = 1 AND org.employee_id IS NULL ORDER BY applicant LIMIT ?) n group by trademark";
-//                " WHERE org.has_contact = 1 AND org.employee_id IS NULL and trademark.address like '%山东%' LIMIT ?";
+                " WHERE org.has_contact = 1 AND org.employee_id IS NULL " +
+                (StringUtils.isEmpty(province) ? "" : " and trademark.address like '%" + province + "%'") +
+                "ORDER BY applicant LIMIT ?) n group by trademark";
 
         logger.info("findNewCustomerChance sql: {}, num: {}", sql, num);
         return jdbcTemplate.query(sql, new Object[]{num}, getExportRowMapper());

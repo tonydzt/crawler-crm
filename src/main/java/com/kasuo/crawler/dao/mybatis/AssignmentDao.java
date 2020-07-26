@@ -24,6 +24,6 @@ public interface AssignmentDao {
 
     int countGroup();
 
-    List<AssignVo> findPage(@Param("pageNo") Integer pageNo, @Param("pageNum") Integer pageNum);
+    List<AssignVo> findPage(@Param("province") String province, @Param("pageNo") Integer pageNo, @Param("pageNum") Integer pageNum);
 
 }

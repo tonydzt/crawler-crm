@@ -67,6 +67,11 @@
         SELECT `date`, num, mobile_num, tel_num, total_num, assign_num, unassign_num FROM
             (SELECT `date`, count(*) num, count(mobile_num) mobile_num, count(tel_num) tel_num, (count(mobile_num) + count(tel_num)) total_num,
                                     count(assignment_name is not null or null) assign_num, count(assignment_name is null or null) unassign_num
-             FROM assignment GROUP BY `date`) n ORDER BY `date` DESC limit #{pageNo}, #{pageNum};
+             FROM assignment
+                 <if test="province.length() > 0">
+                     where address LIKE '${province}%'
+                 </if>
+
+             GROUP BY `date`) n ORDER BY `date` DESC limit #{pageNo}, #{pageNum};
     </select>
 </mapper>

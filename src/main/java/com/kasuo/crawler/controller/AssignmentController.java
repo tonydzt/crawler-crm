@@ -26,20 +26,20 @@ public class AssignmentController {
     public Response assign(@RequestBody Map<String,Object> body) {
 
         String batchNo = body.get("batchNo").toString();
+        String province = body.get("province").toString();
         Map<String,Object> assignMap = (Map<String, Object>) body.get("assign");
 
-        assignmentService.assign(batchNo, assignMap);
+        assignmentService.assign(batchNo, province, assignMap);
 
         return ErrorCode.OK_EMPTY;
     }
 
     @RequestMapping(value = "/getAssignPage", method = RequestMethod.GET)
-    public Pagable getAssignPage(@RequestParam(required = false) Integer offset) {
+    public Pagable getAssignPage(String province, @RequestParam(required = false) Integer pageNumber) {
 
-        if (offset == null) {
-            offset = 0;
+        if (pageNumber == null) {
+            pageNumber = 0;
         }
-
-        return assignmentService.getAssignPage(offset);
+        return assignmentService.getAssignPage(province, pageNumber);
     }
 }

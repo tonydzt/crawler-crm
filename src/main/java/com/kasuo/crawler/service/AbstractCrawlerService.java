@@ -259,7 +259,7 @@ public abstract class AbstractCrawlerService {
 
                                 browser.getCacheStorage().clearCache();
 
-                                crawlOrgInfo(browser, orgList);
+                                crawlOrgInfo(browser, orgList, verifyData);
 
                                 if ((!verifyData) && (crawlCurrentNums > crawlerMaxRecords)) {
                                     logger.warn("HAS FETCH " + crawlCurrentNums + " data,now need to REBOOT!");
@@ -366,7 +366,7 @@ public abstract class AbstractCrawlerService {
         return orgList;
     }
 
-    private void crawlOrgInfo(Browser browser, List<SourceInput> inputList) {
+    private void crawlOrgInfo(Browser browser, List<SourceInput> inputList, boolean isVerifyData) {
         String queryOrgName = null;
         try {
             System.gc();
@@ -382,9 +382,15 @@ public abstract class AbstractCrawlerService {
                     return;
                 }
 
+                if (SourceUtil.isPerson(input.getOrgName())) {
+                    logger.warn("Org {} is Personal company, ignore it.", input.getOrgName());
+                    SpringBeanUtil.getBean(TrademarkDao.class).updateCrawStatusIgnore(Long.parseLong(input.getId()));
+                    continue;
+                }
+
                 //判断是否抓取过改公司，如果抓取过，则不重复抓取
                 com.kasuo.crawler.domain.Org orgTest = SpringBeanUtil.getBean(OrgDao.class).findByNameForUpdate(input.getOrgName());
-                if (orgTest != null) {
+                if (orgTest != null && !isVerifyData) {
                     logger.warn("Org {} already exist!", input.getOrgName());
                     SpringBeanUtil.getBean(TrademarkDao.class).updateCrawStatusSkip(Long.parseLong(input.getId()), orgTest.getId(), false);
 

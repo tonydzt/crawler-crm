@@ -206,4 +206,9 @@ public class TrademarkDao {
         String sql = "select * from trademark where id = " + trademarkId;
         return jdbcTemplate.queryForObject(sql, getRowMapper());
     }
+
+    public void updateCrawStatusIgnore(Long trademarkId) {
+        String sql = "update trademark set craw_status = 4 where id = ?";
+        jdbcTemplate.update(sql, trademarkId);
+    }
 }
